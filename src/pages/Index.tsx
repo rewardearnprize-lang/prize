@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ const Index = () => {
   const { draws, loading } = useAppSelector((state) => state.draws);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
 
   const success = params.get("success");
@@ -50,10 +51,10 @@ const Index = () => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  // بعد الرجوع من CBA → خصم العدد وفتح المودال
+  // لو رجع من صفحة خارجية ومعاه success → أظهر congrats + خصم واحد من Firebase
   useEffect(() => {
     const handleSuccess = async () => {
-      if (success === "true" && prizeId) {
+      if (success === "true" && prizeId && email) {
         setParticipantEmail(email as string);
         setShowSuccessModal(true);
 
@@ -63,8 +64,11 @@ const Index = () => {
           if (snap.exists()) {
             const data = snap.data();
             const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
+            const participants = data.participants || [];
+
             await updateDoc(prizeRef, {
               remainingParticipants: Math.max(currentRemaining - 1, 0),
+              participants: [...participants, email],
             });
           }
         } catch (err) {
@@ -106,16 +110,13 @@ const Index = () => {
       existingParticipations.push(userParticipation);
       localStorage.setItem("userParticipations", JSON.stringify(existingParticipations));
 
-      // هنا هنوجّه اليوزر على صفحة CBA (لينك خارجي)
-      // خلي الـ returnUrl هو اللينك بتاع موقعك
-      const returnUrl = `${window.location.origin}/?success=true&prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
+      // سجل المستخدم الحالي
+      localStorage.setItem("currentUserEmail", email);
+
+      // 🔗 نوجهه على صفحة خارجية (Netlify) بدل "/hamas"
+      window.location.href = `https://prizeapp.netlify.app/hamas?prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
         selectedPrize.name
       )}&email=${encodeURIComponent(email)}`;
-
-      // لينك CBA هيبقى ثابت عندك
-      const cbaUrl = `https://cba.com/do-something?returnUrl=${encodeURIComponent(returnUrl)}`;
-
-      window.location.href = cbaUrl;
     }
   };
 

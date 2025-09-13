@@ -10,6 +10,8 @@ import Admin from "./pages/Admin";
 import Winners from "./pages/Winners";
 import ThankYou from "./pages/ThankYou";
 import NotFound from "./pages/NotFound";
+import Hamas from "@/pages/hamas";
+
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,7 @@ const App = () => (
             <Route path="/thank-you" element={<ThankYou />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
+            <Route path="/hamas" element={<Hamas />} />
             
           </Routes>
         </BrowserRouter>

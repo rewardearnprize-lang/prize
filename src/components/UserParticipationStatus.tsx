@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +7,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface UserParticipation {
   email: string;
   prize: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: "completed" | "pending" | "failed";
   timestamp: string;
 }
 
@@ -17,20 +16,24 @@ const UserParticipationStatus = () => {
   const [userParticipations, setUserParticipations] = useState<UserParticipation[]>([]);
 
   useEffect(() => {
-    // In real implementation, fetch from Firebase/localStorage
-    const stored = localStorage.getItem('userParticipations');
-    if (stored) {
-      setUserParticipations(JSON.parse(stored));
+    // جلب المشاركات من localStorage للمستخدم الحالي فقط
+    const stored = localStorage.getItem("userParticipations");
+    const currentUserEmail = localStorage.getItem("currentUserEmail"); // بريد المستخدم الحالي
+
+    if (stored && currentUserEmail) {
+      const participations: UserParticipation[] = JSON.parse(stored);
+      // عرض فقط المشاركات الخاصة بالبريد الحالي
+      setUserParticipations(participations.filter((p) => p.email === currentUserEmail));
     }
   }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="w-5 h-5 text-green-400" />;
-      case 'pending':
+      case "pending":
         return <Clock className="w-5 h-5 text-yellow-400" />;
-      case 'failed':
+      case "failed":
         return <AlertCircle className="w-5 h-5 text-red-400" />;
       default:
         return <Clock className="w-5 h-5 text-gray-400" />;
@@ -39,27 +42,27 @@ const UserParticipationStatus = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed':
-        return t('participation.qualified');
-      case 'pending':
-        return t('participation.pending');
-      case 'failed':
-        return t('participation.failed');
+      case "completed":
+        return t("participation.qualified");
+      case "pending":
+        return t("participation.pending");
+      case "failed":
+        return t("participation.failed");
       default:
-        return 'غير معروف';
+        return "غير معروف";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-green-500/20 text-green-400';
-      case 'pending':
-        return 'bg-yellow-500/20 text-yellow-400';
-      case 'failed':
-        return 'bg-red-500/20 text-red-400';
+      case "completed":
+        return "bg-green-500/20 text-green-400";
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-400";
+      case "failed":
+        return "bg-red-500/20 text-red-400";
       default:
-        return 'bg-gray-500/20 text-gray-400';
+        return "bg-gray-500/20 text-gray-400";
     }
   };
 
@@ -70,10 +73,13 @@ const UserParticipationStatus = () => {
   return (
     <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-8">
       <CardContent className="p-6">
-        <h3 className="text-xl font-bold text-white mb-4">{t('participation.yourStatus')}</h3>
+        <h3 className="text-xl font-bold text-white mb-4">{t("participation.yourStatus")}</h3>
         <div className="space-y-3">
           {userParticipations.map((participation, index) => (
-            <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+            <div
+              key={index}
+              className="flex items-center justify-between bg-white/5 rounded-lg p-3"
+            >
               <div className="flex items-center space-x-3">
                 {getStatusIcon(participation.status)}
                 <div>
