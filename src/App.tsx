@@ -10,7 +10,6 @@ import Admin from "./pages/Admin";
 import Winners from "./pages/Winners";
 import ThankYou from "./pages/ThankYou";
 import NotFound from "./pages/NotFound";
-import Return from "./pages/return"; // ✅ الصفحة الجديدة
 
 const queryClient = new QueryClient();
 
@@ -26,9 +25,9 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/winners" element={<Winners />} />
             <Route path="/thank-you" element={<ThankYou />} />
-            <Route path="/return" element={<Return />} /> {/* ✅ أضفتها هنا */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
+            
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
