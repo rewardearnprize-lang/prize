@@ -51,34 +51,44 @@ const Index = () => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  // لو رجع من صفحة خارجية ومعاه success → أظهر congrats + خصم واحد من Firebase
-  useEffect(() => {
-    const handleSuccess = async () => {
-      if (success === "true" && prizeId && email) {
-        setParticipantEmail(email as string);
-        setShowSuccessModal(true);
+  // لما يرجع من hamas ومعاه success → أظهر modal وخصم واحد من Firebase + سجل الإيميل
+useEffect(() => {
+  const handleSuccess = async () => {
+    if (success === "true" && prizeId && email) {
+      setParticipantEmail(email as string);
+      setShowSuccessModal(true);
 
-        try {
-          const prizeRef = doc(firestore, "draws", prizeId as string);
-          const snap = await getDoc(prizeRef);
-          if (snap.exists()) {
-            const data = snap.data();
-            const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
-            const participants = data.participants || [];
+      try {
+        const prizeRef = doc(firestore, "draws", prizeId as string);
+        const snap = await getDoc(prizeRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
+          const participants: string[] = data.participants || [];
 
+          // ✅ تحقق لو الميل موجود بالفعل في Firebase
+          const alreadyParticipated = participants.includes(email);
+
+          if (!alreadyParticipated) {
             await updateDoc(prizeRef, {
               remainingParticipants: Math.max(currentRemaining - 1, 0),
               participants: [...participants, email],
             });
           }
-        } catch (err) {
-          console.error("❌ Error updating participants:", err);
         }
+      } catch (err) {
+        console.error("❌ Error updating participants:", err);
       }
-    };
 
-    handleSuccess();
-  }, [success, prizeId, email]);
+      // 🟢 امسح success من اللينك عشان ما يتكرر الخصم
+      params.delete("success");
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, "", newUrl);
+    }
+  };
+
+  handleSuccess();
+}, [success, prizeId, email]);
 
   const handlePrizeClick = (draw: Draw) => {
     const participantsCount = draw.participants?.length || 0;
@@ -110,13 +120,15 @@ const Index = () => {
       existingParticipations.push(userParticipation);
       localStorage.setItem("userParticipations", JSON.stringify(existingParticipations));
 
-      // سجل المستخدم الحالي
+      // 🟢 سجلنا المستخدم الحالي
       localStorage.setItem("currentUserEmail", email);
 
-      // 🔗 نوجهه على صفحة خارجية (Netlify) بدل "/hamas"
-      window.location.href = `https://prizeapp.netlify.app/hamas?prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
-        selectedPrize.name
-      )}&email=${encodeURIComponent(email)}`;
+      // 🟢 نوجهه لصفحة hamas
+      navigate(
+        `/hamas?prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
+          selectedPrize.name
+        )}&email=${encodeURIComponent(email)}`
+      );
     }
   };
 
