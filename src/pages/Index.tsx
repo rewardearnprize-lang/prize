@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,21 +37,20 @@ const Index = () => {
   const dispatch = useAppDispatch();
   const { draws, loading } = useAppSelector((state) => state.draws);
 
-const location = useLocation();
-const navigate = useNavigate();
-const params = new URLSearchParams(location.search);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
 
-const success = params.get("success");
-const prizeId = params.get("prizeId");
-const prizeName = params.get("prizeName");
-const email = params.get("email");
+  const success = params.get("success");
+  const prizeId = params.get("prizeId");
+  const prizeName = params.get("prizeName");
+  const email = params.get("email");
 
   // جلب السحوبات
   useEffect(() => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  // لما يرجع من اللينك success=true → أظهر modal وخصم واحد من Firebase
+  // بعد الرجوع من CBA → خصم العدد وفتح المودال
   useEffect(() => {
     const handleSuccess = async () => {
       if (success === "true" && prizeId) {
@@ -99,7 +98,7 @@ const email = params.get("email");
       const userParticipation = {
         email: email,
         prize: selectedPrize.name,
-        status: "pending", // مش completed دلوقتي
+        status: "pending",
         timestamp: new Date().toISOString(),
       };
 
@@ -107,12 +106,16 @@ const email = params.get("email");
       existingParticipations.push(userParticipation);
       localStorage.setItem("userParticipations", JSON.stringify(existingParticipations));
 
-      // هنا بدل ما نفتح congrats → نوجهه للينك اللي فيه success
-      const redirectUrl = `/index?success=true&prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
+      // هنا هنوجّه اليوزر على صفحة CBA (لينك خارجي)
+      // خلي الـ returnUrl هو اللينك بتاع موقعك
+      const returnUrl = `${window.location.origin}/?success=true&prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
         selectedPrize.name
       )}&email=${encodeURIComponent(email)}`;
 
-      window.location.href = redirectUrl;
+      // لينك CBA هيبقى ثابت عندك
+      const cbaUrl = `https://cba.com/do-something?returnUrl=${encodeURIComponent(returnUrl)}`;
+
+      window.location.href = cbaUrl;
     }
   };
 
