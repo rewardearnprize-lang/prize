@@ -1,3 +1,4 @@
+// src/components/UserParticipationStatus.tsx
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,14 +17,14 @@ const UserParticipationStatus = () => {
   const [userParticipations, setUserParticipations] = useState<UserParticipation[]>([]);
 
   useEffect(() => {
-    // جلب المشاركات من localStorage للمستخدم الحالي فقط
     const stored = localStorage.getItem("userParticipations");
-    const currentUserEmail = localStorage.getItem("currentUserEmail"); // بريد المستخدم الحالي
+    const currentUserEmail = localStorage.getItem("currentUserEmail");
 
     if (stored && currentUserEmail) {
       const participations: UserParticipation[] = JSON.parse(stored);
-      // عرض فقط المشاركات الخاصة بالبريد الحالي
-      setUserParticipations(participations.filter((p) => p.email === currentUserEmail));
+      setUserParticipations(
+        participations.filter((p) => p.email === currentUserEmail)
+      );
     }
   }, []);
 
@@ -43,11 +44,11 @@ const UserParticipationStatus = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case "completed":
-        return t("participation.qualified");
+        return t("participation.qualified") || "✅ مؤهل";
       case "pending":
-        return t("participation.pending");
+        return t("participation.pending") || "⏳ قيد الانتظار";
       case "failed":
-        return t("participation.failed");
+        return t("participation.failed") || "❌ مرفوض";
       default:
         return "غير معروف";
     }
@@ -73,22 +74,28 @@ const UserParticipationStatus = () => {
   return (
     <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-8">
       <CardContent className="p-6">
-        <h3 className="text-xl font-bold text-white mb-4">{t("participation.yourStatus")}</h3>
+        <h3 className="text-xl font-bold text-white mb-4">
+          {t("participation.yourStatus") || "حالة مشاركتك"}
+        </h3>
+
         <div className="space-y-3">
-          {userParticipations.map((participation, index) => (
+          {userParticipations.map((p, index) => (
             <div
               key={index}
               className="flex items-center justify-between bg-white/5 rounded-lg p-3"
             >
               <div className="flex items-center space-x-3">
-                {getStatusIcon(participation.status)}
+                {getStatusIcon(p.status)}
                 <div>
-                  <p className="text-white font-medium">{participation.prize}</p>
-                  <p className="text-gray-400 text-sm">{participation.email}</p>
+                  <p className="text-white font-medium">{p.prize}</p>
+                  <p className="text-gray-400 text-sm">{p.email}</p>
+                  <p className="text-gray-500 text-xs">
+                    {new Date(p.timestamp).toLocaleString()}
+                  </p>
                 </div>
               </div>
-              <Badge className={getStatusColor(participation.status)}>
-                {getStatusText(participation.status)}
+              <Badge className={getStatusColor(p.status)}>
+                {getStatusText(p.status)}
               </Badge>
             </div>
           ))}

@@ -1,5 +1,11 @@
+// src/components/ParticipationModal.tsx
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +20,12 @@ interface ParticipationModalProps {
   onParticipate: (email: string) => void;
 }
 
-const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: ParticipationModalProps) => {
+const ParticipationModal = ({
+  isOpen,
+  onClose,
+  prize,
+  onParticipate,
+}: ParticipationModalProps) => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -38,22 +49,44 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
       // 🟢 استدعاء callback
       onParticipate(email);
 
-      // 🟢 خزّن الإيميل في localStorage
+      // 🟢 خزّن الإيميل
       localStorage.setItem("currentUserEmail", email);
+
+      // 🟢 تعديل بيانات السحب في localStorage
+      const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
+      if (!drawsData[prize.id]) {
+        drawsData[prize.id] = {
+          participants: [],
+          prizeName: prize.name,
+          maxParticipants: prize.maxParticipants || 100,
+        };
+      }
+
+      if (!drawsData[prize.id].participants.includes(email)) {
+        drawsData[prize.id].participants.push(email);
+
+        // قلل العدد
+        if (drawsData[prize.id].maxParticipants > 0) {
+          drawsData[prize.id].maxParticipants -= 1;
+        }
+      }
+
+      localStorage.setItem("drawsData", JSON.stringify(drawsData));
 
       setEmail("");
       onClose();
 
       toast({
         title: "تم تسجيل مشاركتك 🎉",
-        description: "سيتم تحويلك إلى صفحة العرض الآن. أكمل المطلوب لتتأهل للسحب.",
+        description:
+          "سيتم تحويلك إلى صفحة العرض الآن. أكمل المطلوب لتتأهل للسحب.",
       });
 
       // 🟢 لو في offerUrl حطه هنا
       if (prize?.offerUrl) {
-        const redirectUrl = `${prize.offerUrl}?prizeId=${prize.id}&email=${encodeURIComponent(
-          email
-        )}`;
+        const redirectUrl = `${prize.offerUrl}?prizeId=${prize.id}&prizeName=${encodeURIComponent(
+          prize.name
+        )}&email=${encodeURIComponent(email)}`;
         window.location.href = redirectUrl;
       } else {
         toast({
@@ -66,6 +99,12 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
   };
 
   if (!prize) return null;
+
+  // 🟢 احسب الباقي من localStorage أو props
+  const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
+  const localMax = drawsData[prize.id]?.maxParticipants ?? prize.maxParticipants;
+  const participantsCount = drawsData[prize.id]?.participants?.length || 0;
+  const remaining = localMax ?? prize.maxParticipants;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -89,7 +128,7 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">المتبقي من المشاركين:</span>
-                <Badge variant="secondary">{prize.remainingParticipants}</Badge>
+                <Badge variant="secondary">{remaining}</Badge>
               </div>
 
               <div className="w-full bg-gray-700 rounded-full h-2">
@@ -97,7 +136,7 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                   style={{
                     width: `${
-                      ((prize.maxParticipants - prize.remainingParticipants) /
+                      ((prize.maxParticipants - remaining) /
                         prize.maxParticipants) *
                       100
                     }%`,
@@ -189,7 +228,8 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
             <div className="text-sm">
               <p className="text-yellow-300 font-medium">مهم:</p>
               <p className="text-yellow-200">
-                تأكد من إكمال جميع خطوات العرض لتتأهل للسحب. ستصلك رسالة تأكيد على البريد الإلكتروني بعد نجاح المشاركة.
+                تأكد من إكمال جميع خطوات العرض لتتأهل للسحب. ستصلك رسالة تأكيد
+                على البريد الإلكتروني بعد نجاح المشاركة.
               </p>
             </div>
           </div>
