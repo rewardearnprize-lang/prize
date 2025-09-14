@@ -72,12 +72,10 @@ const Index = () => {
   const prizeName = params.get("prizeName");
   const email = params.get("email");
 
-  // 🟢 تحميل السحوبات
   useEffect(() => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  // 🟢 تحديث أعداد المشاركين realtime
   useEffect(() => {
     const participantsCol = collection(firestore, "participants");
     const unsub = onSnapshot(participantsCol, (snapshot) => {
@@ -205,6 +203,55 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <Header onLanguageChange={changeLanguage} />
 
+ {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative z-10 container mx-auto px-4 py-16">
+          <div className="text-center text-white">
+            <div className="inline-flex items-center bg-yellow-500/20 backdrop-blur-sm rounded-full px-6 py-2 mb-6">
+              <Trophy className="w-5 h-5 mr-2 text-yellow-400" />
+              <span className="text-yellow-300 font-semibold">{t('site.subtitle')}</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+              {t('site.title')}
+            </h1>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold">15,847</p>
+                <p className="text-sm text-gray-300">{t('stats.participants')}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <Gift className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold">342</p>
+                <p className="text-sm text-gray-300">{t('stats.winners')}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold">$125K</p>
+                <p className="text-sm text-gray-300">{t('stats.prizeValue')}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <Clock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold">24/7</p>
+                <p className="text-sm text-gray-300">{t('stats.continuous')}</p>
+              </div>
+            </div>
+
+            {/* Transparency Button */}
+            <Button 
+              onClick={() => setShowTransparencyModal(true)}
+              variant="outline"
+              className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20 mb-8"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              {t('transparency.title')}
+            </Button>
+          </div>
+        </div>
+      </div>
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative z-10 container mx-auto px-4 py-16">
