@@ -57,40 +57,35 @@ const [manualEmail, setManualEmail] = useState("");
 
 // ✅ جوة useEffect بتاع handleSuccess
 useEffect(() => {
-  const handleSuccess = async () => {
+  const handleLocalSuccess = () => {
     if (success === "true" && prizeId) {
+      // جيب البيانات اللي متخزنة
+      const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
+
+      // لو مفيش prizeId ده متسجل قبل كده → رجّع default
+      if (!drawsData[prizeId]) {
+        drawsData[prizeId] = {
+          remainingParticipants: 0,
+          participants: [],
+        };
+      }
+
+      // جيب الإيميل من البارامز أو من localStorage
       let finalEmail = email || localStorage.getItem("currentUserEmail") || "";
 
-      if (!finalEmail) {
-        setShowSuccessModal(true);
-        return;
+      // لو المستخدم مش موجود قبل كده → نزّله
+      if (!drawsData[prizeId].participants.includes(finalEmail)) {
+        drawsData[prizeId].participants.push(finalEmail);
+        drawsData[prizeId].remainingParticipants =
+          (drawsData[prizeId].remainingParticipants || 0) - 1;
       }
 
-      setParticipantEmail(finalEmail);
+      // خزّن الجديد
+      localStorage.setItem("drawsData", JSON.stringify(drawsData));
+
       setShowSuccessModal(true);
 
-      try {
-        const prizeRef = doc(firestore, "draws", prizeId as string);
-        const snap = await getDoc(prizeRef);
-
-        if (snap.exists()) {
-          const data = snap.data();
-          const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
-          const participants: string[] = data.participants || [];
-
-          if (!participants.includes(finalEmail)) {
-            await updateDoc(prizeRef, {
-              remainingParticipants: Math.max(currentRemaining - 1, 0),
-              participants: [...participants, finalEmail],
-            });
-          }
-        }
-        localStorage.setItem("currentUserEmail", finalEmail);
-      } catch (err) {
-        console.error("❌ Error updating participants:", err);
-      }
-
-      // 🟢 امسح success بعد ما كله يخلص
+      // 🟢 امسح success من الرابط بعد نص ثانية
       setTimeout(() => {
         params.delete("success");
         const newUrl = `${window.location.pathname}?${params.toString()}`;
@@ -99,13 +94,18 @@ useEffect(() => {
     }
   };
 
-  handleSuccess();
+  handleLocalSuccess();
 }, [success, prizeId, email]);
 
 
   const handlePrizeClick = (draw: Draw) => {
-    const participantsCount = draw.participants?.length || 0;
-    const max = draw.maxParticipants || 0;
+// هات البيانات من localStorage
+const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
+const localParticipants = drawsData[draw.id]?.participants?.length || 0;
+
+// عدد المشاركين الكلي = اللي جاي من السيرفر + اللي اتحفظ محلي
+const participantsCount = (draw.participants?.length || 0) + localParticipants;
+const max = draw.maxParticipants || 0;
 
     if (max > 0 && participantsCount >= max) {
       toast({
@@ -225,62 +225,69 @@ if (selectedPrize.offerUrl) {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             {loading && <p className="text-white text-center">جارِ التحميل...</p>}
 
-            {!loading &&
-              draws
-                .filter((draw) => draw.status === "active")
-                .map((draw) => {
-                  const participantsCount = draw.participants?.length || 0;
-                  const max = draw.maxParticipants || 0;
+{!loading &&
+  draws
+    .filter((draw) => draw.status === "active")
+    .map((draw) => {
+      // 🟢 هات البيانات من localStorage
+      const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
+      const localParticipants = drawsData[draw.id]?.participants?.length || 0;
 
-                  return (
-                    <Card
-                      key={draw.id}
-                      className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105"
-                    >
-                      <CardHeader className="text-center">
-                        <div className="text-6xl mb-4">🎁</div>
-                        <CardTitle className="text-white">{draw.name}</CardTitle>
-                        <CardDescription className="text-green-400 text-2xl font-bold">
-                          {draw.prize || "جائزة"} - ${draw.prizeValue || 0}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between text-gray-300">
-                            <span>{t("prizes.participantsRemaining")}:</span>
-                            <Badge variant="secondary">{max - participantsCount}</Badge>
-                          </div>
+      // 🟢 عدد المشاركين الكلي = السيرفر + localStorage
+      const participantsCount =
+        (draw.participants?.length || 0) + localParticipants;
+      const max = draw.maxParticipants || 0;
 
-                          <div className="w-full bg-gray-700 rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                              style={{
-                                width: `${(participantsCount / (max || 1)) * 100}%`,
-                              }}
-                            ></div>
-                          </div>
+      return (
+        <Card
+          key={draw.id}
+          className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105"
+        >
+          <CardHeader className="text-center">
+            <div className="text-6xl mb-4">🎁</div>
+            <CardTitle className="text-white">{draw.name}</CardTitle>
+            <CardDescription className="text-green-400 text-2xl font-bold">
+              {draw.prize || "جائزة"} - ${draw.prizeValue || 0}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-gray-300">
+                <span>{t("prizes.participantsRemaining")}:</span>
+                <Badge variant="secondary">{max - participantsCount}</Badge>
+              </div>
 
-                          <div className="text-center text-sm text-gray-400">
-                            {draw.status === "active"
-                              ? `السحب ينتهي في ${draw.endDate || ""}`
-                              : "مغلق"}
-                          </div>
-                        </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${(participantsCount / (max || 1)) * 100}%`,
+                  }}
+                ></div>
+              </div>
 
-                        <Button
-                          onClick={() => handlePrizeClick(draw)}
-                          disabled={draw.status !== "active"}
-                          className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Target className="w-4 h-4 mr-2" />
-                          {draw.status !== "active"
-                            ? t("button.completed")
-                            : t("button.participateInDraw")}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+              <div className="text-center text-sm text-gray-400">
+                {draw.status === "active"
+                  ? `السحب ينتهي في ${draw.endDate || ""}`
+                  : "مغلق"}
+              </div>
+            </div>
+
+            <Button
+              onClick={() => handlePrizeClick(draw)}
+              disabled={draw.status !== "active"}
+              className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Target className="w-4 h-4 mr-2" />
+              {draw.status !== "active"
+                ? t("button.completed")
+                : t("button.participateInDraw")}
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    })}
+
           </div>
         </div>
       </div>
