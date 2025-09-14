@@ -59,11 +59,9 @@ const [manualEmail, setManualEmail] = useState("");
 useEffect(() => {
   const handleSuccess = async () => {
     if (success === "true" && prizeId) {
-      // لو الإيميل جاي في اللينك → استعمله
       let finalEmail = email || localStorage.getItem("currentUserEmail") || "";
 
       if (!finalEmail) {
-        // 🟡 مفيش إيميل → افتح المودال واطلب منه يدخل إيميله
         setShowSuccessModal(true);
         return;
       }
@@ -74,34 +72,36 @@ useEffect(() => {
       try {
         const prizeRef = doc(firestore, "draws", prizeId as string);
         const snap = await getDoc(prizeRef);
+
         if (snap.exists()) {
           const data = snap.data();
           const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
           const participants: string[] = data.participants || [];
 
-          const alreadyParticipated = participants.includes(finalEmail);
-
-          if (!alreadyParticipated) {
+          if (!participants.includes(finalEmail)) {
             await updateDoc(prizeRef, {
               remainingParticipants: Math.max(currentRemaining - 1, 0),
               participants: [...participants, finalEmail],
             });
           }
         }
-        // 🟢 خزّنه في localStorage
         localStorage.setItem("currentUserEmail", finalEmail);
       } catch (err) {
         console.error("❌ Error updating participants:", err);
       }
 
-      params.delete("success");
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", newUrl);
+      // 🟢 امسح success بعد ما كله يخلص
+      setTimeout(() => {
+        params.delete("success");
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, "", newUrl);
+      }, 500);
     }
   };
 
   handleSuccess();
 }, [success, prizeId, email]);
+
 
   const handlePrizeClick = (draw: Draw) => {
     const participantsCount = draw.participants?.length || 0;
