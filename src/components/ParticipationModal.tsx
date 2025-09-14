@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, ExternalLink, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ParticipationModalProps {
@@ -23,33 +23,45 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
     e.preventDefault();
     if (!email) {
       toast({
-        title: "Error",
-        description: "Please enter your email address",
+        title: "خطأ",
+        description: "من فضلك أدخل البريد الإلكتروني",
         variant: "destructive",
       });
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Simulate submission
+
     setTimeout(() => {
       setIsSubmitting(false);
+
+      // 🟢 استدعاء callback
       onParticipate(email);
+
+      // 🟢 خزّن الإيميل في localStorage
+      localStorage.setItem("currentUserEmail", email);
+
       setEmail("");
       onClose();
-      
+
       toast({
-        title: "Your participation has been recorded! 🎉",
-        description: "You will now be redirected to the offer. Complete the required tasks to qualify for the draw.",
+        title: "تم تسجيل مشاركتك 🎉",
+        description: "سيتم تحويلك إلى صفحة العرض الآن. أكمل المطلوب لتتأهل للسحب.",
       });
 
-      // Simulate redirect to offer (replace with actual OGAds URL with SubID)
-      const subId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.log(`Redirecting to offer with SubID: ${subId}`);
-      
-      // In real implementation, redirect to OGAds offer URL with SubID
-      // window.open(`${offer.ogadsUrl}?subid=${subId}`, '_blank');
+      // 🟢 لو في offerUrl حطه هنا
+      if (prize?.offerUrl) {
+        const redirectUrl = `${prize.offerUrl}?prizeId=${prize.id}&email=${encodeURIComponent(
+          email
+        )}`;
+        window.location.href = redirectUrl;
+      } else {
+        toast({
+          title: "لا يوجد لينك للعرض",
+          description: "من فضلك تواصل مع الإدارة",
+          variant: "destructive",
+        });
+      }
     }, 1500);
   };
 
@@ -61,11 +73,11 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
         <DialogHeader>
           <DialogTitle className="text-center">
             <div className="space-y-4">
-              <div className="text-4xl">{prize.image}</div>
-              <h2 className="text-2xl font-bold text-white">Participate in the Draw</h2>
+              <div className="text-4xl">{prize.image || "🎁"}</div>
+              <h2 className="text-2xl font-bold text-white">اشترك في السحب</h2>
               <p className="text-lg text-gray-300">{prize.name}</p>
               <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
-                Value: {prize.value}
+                قيمة الجائزة: {prize.prizeValue || prize.value}
               </Badge>
             </div>
           </DialogTitle>
@@ -76,22 +88,26 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-300">Remaining Participants:</span>
+                <span className="text-gray-300">المتبقي من المشاركين:</span>
                 <Badge variant="secondary">{prize.remainingParticipants}</Badge>
               </div>
-              
+
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${((prize.maxParticipants - prize.remainingParticipants) / prize.maxParticipants) * 100}%` 
+                  style={{
+                    width: `${
+                      ((prize.maxParticipants - prize.remainingParticipants) /
+                        prize.maxParticipants) *
+                      100
+                    }%`,
                   }}
                 ></div>
               </div>
-              
+
               <div className="flex items-center text-sm text-gray-400">
                 <Clock className="w-4 h-4 mr-2" />
-                <span>The draw takes place once the required number of participants is reached</span>
+                <span>سيتم السحب عند اكتمال العدد المطلوب</span>
               </div>
             </CardContent>
           </Card>
@@ -101,11 +117,11 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
             <div>
               <label className="block text-white font-medium mb-2">
                 <Mail className="w-4 h-4 inline mr-2" />
-                Email Address
+                البريد الإلكتروني
               </label>
               <Input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="أدخل بريدك الإلكتروني"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
@@ -116,47 +132,53 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
             {/* Steps */}
             <Card className="bg-blue-500/20 border-blue-500/30">
               <CardContent className="p-4">
-                <h4 className="text-white font-medium mb-3">Participation Steps:</h4>
+                <h4 className="text-white font-medium mb-3">خطوات الاشتراك:</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">1</span>
-                    Enter your email
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      1
+                    </span>
+                    أدخل بريدك الإلكتروني
                   </div>
                   <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">2</span>
-                    Complete the required offer
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      2
+                    </span>
+                    أكمل العرض المطلوب
                   </div>
                   <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">3</span>
-                    Wait for participation confirmation
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      3
+                    </span>
+                    انتظر تأكيد مشاركتك
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <div className="flex space-x-3">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  "Processing..."
+                  "جاري المعالجة..."
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Participate Now
+                    اشترك الآن
                   </>
                 )}
               </Button>
-              
-              <Button 
+
+              <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
                 className="border-white/30 text-white hover:bg-white/10"
               >
-                Cancel
+                إلغاء
               </Button>
             </div>
           </form>
@@ -165,9 +187,9 @@ const ParticipationModal = ({ isOpen, onClose, prize, onParticipate }: Participa
           <div className="flex items-start space-x-3 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
             <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5" />
             <div className="text-sm">
-              <p className="text-yellow-300 font-medium">Important:</p>
+              <p className="text-yellow-300 font-medium">مهم:</p>
               <p className="text-yellow-200">
-                Make sure to complete all steps of the offer to qualify for the draw. You will receive a confirmation email once your participation is successful.
+                تأكد من إكمال جميع خطوات العرض لتتأهل للسحب. ستصلك رسالة تأكيد على البريد الإلكتروني بعد نجاح المشاركة.
               </p>
             </div>
           </div>

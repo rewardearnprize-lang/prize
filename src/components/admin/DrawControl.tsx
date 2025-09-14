@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,19 +67,21 @@ const DrawControl = () => {
   const [editingDraw, setEditingDraw] = useState<Draw | null>(null);
 
   // النموذج الجديد (جائزة واحدة)
-  const [newDraw, setNewDraw] = useState({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-    drawDate: "",
-    maxParticipants: 100,
-    prize: "",
-    prizeValue: 0,
-    minPoints: 0,
-    minOffers: 0,
-    socialMediaRequired: false
-  });
+const [newDraw, setNewDraw] = useState({
+  name: "",
+  description: "",
+  startDate: "",
+  endDate: "",
+  drawDate: "",
+  maxParticipants: 100,
+  prize: "",
+  prizeValue: 0,
+  minPoints: 0,
+  minOffers: 0,
+  socialMediaRequired: false,
+  offerUrl: "" // ✅ ضيف دي هنا
+});
+
 
   useEffect(() => {
     dispatch(fetchDraws());
@@ -174,39 +178,43 @@ const DrawControl = () => {
       return;
     }
 
-    const drawData = {
-      name: newDraw.name,
-      description: newDraw.description,
-      startDate: newDraw.startDate,
-      endDate: newDraw.endDate,
-      drawDate: newDraw.drawDate,
-      status: "upcoming" as const,
-      maxParticipants: newDraw.maxParticipants,
-      prize: newDraw.prize,
-      prizeValue: newDraw.prizeValue
-    };
+const drawData = {
+  name: newDraw.name,
+  description: newDraw.description,
+  startDate: newDraw.startDate,
+  endDate: newDraw.endDate,
+  drawDate: newDraw.drawDate,
+  status: "upcoming" as const,
+  maxParticipants: newDraw.maxParticipants,
+  prize: newDraw.prize,
+  prizeValue: newDraw.prizeValue,
+  offerUrl: newDraw.offerUrl // ✅ ضيفها هنا
+};
+
 
     const result = await dispatch(addDraw(drawData));
-    if (addDraw.fulfilled.match(result)) {
-      setNewDraw({
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        drawDate: "",
-        maxParticipants: 100,
-        prize: "",
-        prizeValue: 0,
-        minPoints: 0,
-        minOffers: 0,
-        socialMediaRequired: false
-      });
-      setShowAddDrawDialog(false);
-      toast({
-        title: "تم إضافة السحب",
-        description: "تمت إضافة السحب الجديد بنجاح"
-      });
-    }
+if (addDraw.fulfilled.match(result)) {
+  setNewDraw({
+    name: "",
+    description: "",
+    startDate: "",
+    endDate: "",
+    drawDate: "",
+    maxParticipants: 100,
+    prize: "",
+    prizeValue: 0,
+    minPoints: 0,
+    minOffers: 0,
+    socialMediaRequired: false,
+    offerUrl: "" // ✅ لازم تضيفها هنا
+  });
+  setShowAddDrawDialog(false);
+  toast({
+    title: "تم إضافة السحب",
+    description: "تمت إضافة السحب الجديد بنجاح"
+  });
+}
+
   };
 
   const handleEditDraw = (draw: Draw) => {
@@ -259,149 +267,164 @@ const DrawControl = () => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* إدارة السحوبات */}
-      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white flex items-center">
-            <Gift className="w-5 h-5 mr-2" />
-            إدارة السحوبات
-          </CardTitle>
-          <Dialog open={showAddDrawDialog} onOpenChange={setShowAddDrawDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-500 hover:bg-green-600">
-                <Plus className="w-4 h-4 mr-2" />
-                إضافة سحب جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-700 max-w-4xl">
-              <DialogHeader>
-                <DialogTitle className="text-white">إضافة سحب جديد</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-300">اسم السحب</Label>
-                    <Input
-                      value={newDraw.name}
-                      onChange={(e) =>
-                        setNewDraw({ ...newDraw, name: e.target.value })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                      placeholder="اسم السحب"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">الوصف</Label>
-                    <Input
-                      value={newDraw.description}
-                      onChange={(e) =>
-                        setNewDraw({ ...newDraw, description: e.target.value })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                      placeholder="وصف السحب"
-                    />
-                  </div>
+return (
+  <div className="space-y-6">
+    {/* إدارة السحوبات */}
+    <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-white flex items-center">
+          <Gift className="w-5 h-5 mr-2" />
+          إدارة السحوبات
+        </CardTitle>
+        <Dialog open={showAddDrawDialog} onOpenChange={setShowAddDrawDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-green-500 hover:bg-green-600">
+              <Plus className="w-4 h-4 mr-2" />
+              إضافة سحب جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-gray-900 border-gray-700 max-w-4xl">
+            <DialogHeader>
+              <DialogTitle className="text-white">إضافة سحب جديد</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-300">اسم السحب</Label>
+                  <Input
+                    value={newDraw.name}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, name: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="اسم السحب"
+                  />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-300">تاريخ البداية</Label>
-                    <Input
-                      type="date"
-                      value={newDraw.startDate}
-                      onChange={(e) =>
-                        setNewDraw({ ...newDraw, startDate: e.target.value })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">تاريخ النهاية</Label>
-                    <Input
-                      type="date"
-                      value={newDraw.endDate}
-                      onChange={(e) =>
-                        setNewDraw({ ...newDraw, endDate: e.target.value })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">تاريخ السحب</Label>
-                    <Input
-                      type="date"
-                      value={newDraw.drawDate}
-                      onChange={(e) =>
-                        setNewDraw({ ...newDraw, drawDate: e.target.value })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-300">
-                      الحد الأقصى للمشتركين
-                    </Label>
-                    <Input
-                      type="number"
-                      value={newDraw.maxParticipants}
-                      onChange={(e) =>
-                        setNewDraw({
-                          ...newDraw,
-                          maxParticipants: parseInt(e.target.value)
-                        })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">الجائزة</Label>
-                    <Input
-                      value={newDraw.prize}
-                      onChange={(e) =>
-                        setNewDraw({
-                          ...newDraw,
-                          prize: e.target.value
-                        })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                      placeholder="اسم الجائزة"
-                    />
-                    <Input
-                      type="number"
-                      value={newDraw.prizeValue}
-                      onChange={(e) =>
-                        setNewDraw({
-                          ...newDraw,
-                          prizeValue: parseInt(e.target.value)
-                        })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white mt-2"
-                      placeholder="القيمة"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAddDrawDialog(false)}
-                  >
-                    إلغاء
-                  </Button>
-                  <Button
-                    onClick={handleAddDraw}
-                    className="bg-green-500 hover:bg-green-600"
-                  >
-                    إضافة السحب
-                  </Button>
+                <div>
+                  <Label className="text-gray-300">الوصف</Label>
+                  <Input
+                    value={newDraw.description}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, description: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="وصف السحب"
+                  />
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
+
+              {/* 🟢 لينك العرض */}
+              <div>
+                <Label className="text-gray-300">لينك العرض</Label>
+                <Input
+                  type="url"
+                  value={newDraw.offerUrl || ""}
+                  onChange={(e) =>
+                    setNewDraw({ ...newDraw, offerUrl: e.target.value })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                  placeholder="https://example.com/offer"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-gray-300">تاريخ البداية</Label>
+                  <Input
+                    type="date"
+                    value={newDraw.startDate}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, startDate: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-300">تاريخ النهاية</Label>
+                  <Input
+                    type="date"
+                    value={newDraw.endDate}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, endDate: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-300">تاريخ السحب</Label>
+                  <Input
+                    type="date"
+                    value={newDraw.drawDate}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, drawDate: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-300">
+                    الحد الأقصى للمشتركين
+                  </Label>
+                  <Input
+                    type="number"
+                    value={newDraw.maxParticipants}
+                    onChange={(e) =>
+                      setNewDraw({
+                        ...newDraw,
+                        maxParticipants: parseInt(e.target.value),
+                      })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-300">الجائزة</Label>
+                  <Input
+                    value={newDraw.prize}
+                    onChange={(e) =>
+                      setNewDraw({
+                        ...newDraw,
+                        prize: e.target.value,
+                      })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="اسم الجائزة"
+                  />
+                  <Input
+                    type="number"
+                    value={newDraw.prizeValue}
+                    onChange={(e) =>
+                      setNewDraw({
+                        ...newDraw,
+                        prizeValue: parseInt(e.target.value),
+                      })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white mt-2"
+                    placeholder="القيمة"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddDrawDialog(false)}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={handleAddDraw}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  إضافة السحب
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+       <CardContent>
           {draws.length === 0 && (
             <div className="text-center text-gray-400 py-12">
               <div className="text-6xl mb-4">🎁</div>
@@ -521,11 +544,10 @@ const DrawControl = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+    </Card>
 
-  
-      {/* سحب الفائزين */}
-      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+    {/* سحب الفائزين */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
         <CardHeader>
           <CardTitle className="text-white">إجراء السحب</CardTitle>
         </CardHeader>
@@ -639,120 +661,135 @@ const DrawControl = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Draw Dialog */}
-      {/* Edit Draw Dialog */}
-<Dialog open={showEditDrawDialog} onOpenChange={setShowEditDrawDialog}>
-  <DialogContent className="bg-gray-900 border-gray-700 max-w-4xl">
-    <DialogHeader>
-      <DialogTitle className="text-white">تعديل بيانات السحب</DialogTitle>
-    </DialogHeader>
-    {editingDraw && (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-gray-300">اسم السحب</Label>
-            <Input
-              value={editingDraw.name || ""}
-              onChange={(e) =>
-                setEditingDraw({ ...editingDraw, name: e.target.value })
-              }
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">الوصف</Label>
-            <Input
-              value={editingDraw.description || ""}
-              onChange={(e) =>
-                setEditingDraw({
-                  ...editingDraw,
-                  description: e.target.value
-                })
-              }
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-          </div>
-        </div>
+    {/* Edit Draw Dialog */}
+    <Dialog open={showEditDrawDialog} onOpenChange={setShowEditDrawDialog}>
+      <DialogContent className="bg-gray-900 border-gray-700 max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="text-white">تعديل بيانات السحب</DialogTitle>
+        </DialogHeader>
+        {editingDraw && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300">اسم السحب</Label>
+                <Input
+                  value={editingDraw.name || ""}
+                  onChange={(e) =>
+                    setEditingDraw({ ...editingDraw, name: e.target.value })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-gray-300">الوصف</Label>
+                <Input
+                  value={editingDraw.description || ""}
+                  onChange={(e) =>
+                    setEditingDraw({
+                      ...editingDraw,
+                      description: e.target.value,
+                    })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-gray-300">الجائزة</Label>
-            <Input
-              value={editingDraw.prize || ""}
-              onChange={(e) =>
-                setEditingDraw({ ...editingDraw, prize: e.target.value })
-              }
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">قيمة الجائزة</Label>
-            <Input
-              type="number"
-              value={editingDraw.prizeValue || 0}
-              onChange={(e) =>
-                setEditingDraw({
-                  ...editingDraw,
-                  prizeValue: Number(e.target.value)
-                })
-              }
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-          </div>
-        </div>
+            {/* 🟢 تعديل لينك العرض */}
+            <div>
+              <Label className="text-gray-300">لينك العرض</Label>
+              <Input
+                type="url"
+                value={editingDraw.offerUrl || ""}
+                onChange={(e) =>
+                  setEditingDraw({
+                    ...editingDraw,
+                    offerUrl: e.target.value,
+                  })
+                }
+                className="bg-gray-800 border-gray-600 text-white"
+              />
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-gray-300">تاريخ البداية</Label>
-            <Input
-              type="date"
-              value={editingDraw.startDate || ""}
-              onChange={(e) =>
-                setEditingDraw({
-                  ...editingDraw,
-                  startDate: e.target.value
-                })
-              }
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-gray-300">تاريخ النهاية</Label>
-            <Input
-              type="date"
-              value={editingDraw.endDate || ""}
-              onChange={(e) =>
-                setEditingDraw({
-                  ...editingDraw,
-                  endDate: e.target.value
-                })
-              }
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300">الجائزة</Label>
+                <Input
+                  value={editingDraw.prize || ""}
+                  onChange={(e) =>
+                    setEditingDraw({ ...editingDraw, prize: e.target.value })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-gray-300">قيمة الجائزة</Label>
+                <Input
+                  type="number"
+                  value={editingDraw.prizeValue || 0}
+                  onChange={(e) =>
+                    setEditingDraw({
+                      ...editingDraw,
+                      prizeValue: Number(e.target.value),
+                    })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+            </div>
 
-        <div className="flex justify-end space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowEditDrawDialog(false)}
-          >
-            إلغاء
-          </Button>
-          <Button
-            onClick={handleUpdateDraw}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            تحديث البيانات
-          </Button>
-        </div>
-      </div>
-    )}
-  </DialogContent>
-</Dialog>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300">تاريخ البداية</Label>
+                <Input
+                  type="date"
+                  value={editingDraw.startDate || ""}
+                  onChange={(e) =>
+                    setEditingDraw({
+                      ...editingDraw,
+                      startDate: e.target.value,
+                    })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-gray-300">تاريخ النهاية</Label>
+                <Input
+                  type="date"
+                  value={editingDraw.endDate || ""}
+                  onChange={(e) =>
+                    setEditingDraw({
+                      ...editingDraw,
+                      endDate: e.target.value,
+                    })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+            </div>
 
-    </div>
-  );
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowEditDrawDialog(false)}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={handleUpdateDraw}
+                className="bg-blue-500 hover:bg-blue-600"
+              >
+                تحديث البيانات
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  </div>
+);
+
 };
 
 export default DrawControl;

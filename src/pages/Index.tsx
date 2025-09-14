@@ -52,10 +52,23 @@ const Index = () => {
   }, [dispatch]);
 
   // لما يرجع من hamas ومعاه success → أظهر modal وخصم واحد من Firebase + سجل الإيميل
+// ✅ في بداية الكومبوننت خلي state للإيميل المؤقت
+const [manualEmail, setManualEmail] = useState("");
+
+// ✅ جوة useEffect بتاع handleSuccess
 useEffect(() => {
   const handleSuccess = async () => {
-    if (success === "true" && prizeId && email) {
-      setParticipantEmail(email as string);
+    if (success === "true" && prizeId) {
+      // لو الإيميل جاي في اللينك → استعمله
+      let finalEmail = email || localStorage.getItem("currentUserEmail") || "";
+
+      if (!finalEmail) {
+        // 🟡 مفيش إيميل → افتح المودال واطلب منه يدخل إيميله
+        setShowSuccessModal(true);
+        return;
+      }
+
+      setParticipantEmail(finalEmail);
       setShowSuccessModal(true);
 
       try {
@@ -66,21 +79,21 @@ useEffect(() => {
           const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
           const participants: string[] = data.participants || [];
 
-          // ✅ تحقق لو الميل موجود بالفعل في Firebase
-          const alreadyParticipated = participants.includes(email);
+          const alreadyParticipated = participants.includes(finalEmail);
 
           if (!alreadyParticipated) {
             await updateDoc(prizeRef, {
               remainingParticipants: Math.max(currentRemaining - 1, 0),
-              participants: [...participants, email],
+              participants: [...participants, finalEmail],
             });
           }
         }
+        // 🟢 خزّنه في localStorage
+        localStorage.setItem("currentUserEmail", finalEmail);
       } catch (err) {
         console.error("❌ Error updating participants:", err);
       }
 
-      // 🟢 امسح success من اللينك عشان ما يتكرر الخصم
       params.delete("success");
       const newUrl = `${window.location.pathname}?${params.toString()}`;
       window.history.replaceState({}, "", newUrl);
@@ -124,11 +137,18 @@ useEffect(() => {
       localStorage.setItem("currentUserEmail", email);
 
       // 🟢 نوجهه لصفحة hamas
-      navigate(
-        `/hamas?prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(
-          selectedPrize.name
-        )}&email=${encodeURIComponent(email)}`
-      );
+if (selectedPrize.offerUrl) {
+  // 🟢 لو الأدمن حاطط لينك → ودّيه هناك
+  window.location.href = `${selectedPrize.offerUrl}?prizeId=${selectedPrize.id}&email=${encodeURIComponent(email)}`;
+} else {
+  // ⚠️ fallback لو مفيش لينك
+  toast({
+    title: "لا يوجد لينك عرض",
+    description: "من فضلك تواصل مع الإدارة",
+    variant: "destructive",
+  });
+}
+
     }
   };
 

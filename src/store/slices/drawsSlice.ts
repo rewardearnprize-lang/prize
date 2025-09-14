@@ -28,6 +28,7 @@ export interface Draw {
   winners: string[];
   createdAt: string;
   updatedAt: string;
+  offerUrl?: string;
 }
 
 interface DrawsState {
@@ -54,23 +55,25 @@ export const fetchDraws = createAsyncThunk(
       if (!querySnapshot.empty) {
         const drawsArray: Draw[] = querySnapshot.docs.map((d) => {
           const data = d.data() as Omit<Draw, "id">;
-          return {
-            id: d.id,
-            name: data.name || "سحب بدون اسم",
-            description: data.description || "",
-            prize: data.prize || "جائزة",
-            prizeValue: data.prizeValue || 0,
-            maxWinners: data.maxWinners || 1,
-            maxParticipants: data.maxParticipants || 0,
-            currentWinners: data.currentWinners || 0,
-            startDate: data.startDate || "",
-            endDate: data.endDate || "",
-            status: data.status || "active",
-            participants: data.participants || [],
-            winners: data.winners || [],
-            createdAt: data.createdAt || new Date().toISOString(),
-            updatedAt: data.updatedAt || new Date().toISOString(),
-          };
+         return {
+  id: d.id,
+  name: data.name || "سحب بدون اسم",
+  description: data.description || "",
+  prize: data.prize || "جائزة",
+  prizeValue: data.prizeValue || 0,
+  maxWinners: data.maxWinners || 1,
+  maxParticipants: data.maxParticipants || 0,
+  currentWinners: data.currentWinners || 0,
+  startDate: data.startDate || "",
+  endDate: data.endDate || "",
+  status: data.status || "active",
+  participants: data.participants || [],
+  winners: data.winners || [],
+  createdAt: data.createdAt || new Date().toISOString(),
+  updatedAt: data.updatedAt || new Date().toISOString(),
+  offerUrl: data.offerUrl || "",   // ✅ أضفناها هنا
+};
+
         });
 
         return drawsArray;
@@ -116,22 +119,24 @@ export const addDraw = createAsyncThunk(
 
       const now = new Date().toISOString();
 
-      const newDraw: Omit<Draw, "id"> = {
-        name: drawData.name || "سحب جديد",
-        description: drawData.description || "",
-        prize: drawData.prize || "جائزة",
-        prizeValue: drawData.prizeValue || 0,
-        maxWinners: drawData.maxWinners || 1,
-        maxParticipants: drawData.maxParticipants || 0,
-        currentWinners: 0,
-        startDate: drawData.startDate || "",
-        endDate: drawData.endDate || "",
-        status: drawData.status || "active", // ✅ افتراضي Active
-        participants: [],
-        winners: [],
-        createdAt: now,
-        updatedAt: now,
-      };
+    const newDraw: Omit<Draw, "id"> = {
+  name: drawData.name || "سحب جديد",
+  description: drawData.description || "",
+  prize: drawData.prize || "جائزة",
+  prizeValue: drawData.prizeValue || 0,
+  maxWinners: drawData.maxWinners || 1,
+  maxParticipants: drawData.maxParticipants || 0,
+  currentWinners: 0,
+  startDate: drawData.startDate || "",
+  endDate: drawData.endDate || "",
+  status: drawData.status || "active",
+  participants: [],
+  winners: [],
+  createdAt: now,
+  updatedAt: now,
+  offerUrl: drawData.offerUrl || "",   // ✅ هنا
+};
+
 
       const docRef = await addDoc(drawsCollection, newDraw);
       return { ...newDraw, id: docRef.id };
