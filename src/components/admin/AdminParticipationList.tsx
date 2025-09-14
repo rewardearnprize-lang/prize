@@ -1,9 +1,8 @@
-// src/components/AdminParticipationList.tsx
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { firestore } from "@/lib/firebase";
-import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
+import { collection, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
 interface Participation {
   id: string;
@@ -34,6 +33,12 @@ const AdminParticipationList = () => {
     fetchParticipations();
   };
 
+  const deleteParticipation = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا المشترك؟")) return;
+    await deleteDoc(doc(firestore, "participants", id));
+    fetchParticipations();
+  };
+
   return (
     <Card className="bg-white/10 backdrop-blur-sm border-white/20">
       <CardHeader>
@@ -56,6 +61,7 @@ const AdminParticipationList = () => {
                   <Button onClick={() => updateStatus(p.id, "accepted")} className="bg-green-600 hover:bg-green-700">قبول</Button>
                   <Button onClick={() => updateStatus(p.id, "rejected")} className="bg-red-600 hover:bg-red-700">رفض</Button>
                   <Button onClick={() => updateStatus(p.id, "pending")} className="bg-yellow-600 hover:bg-yellow-700">معلق</Button>
+                  <Button onClick={() => deleteParticipation(p.id)} className="bg-gray-600 hover:bg-gray-700">حذف</Button>
                 </div>
               </div>
             ))}
