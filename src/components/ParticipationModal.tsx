@@ -49,7 +49,7 @@ const ParticipationModal = ({
       // 🟢 استدعاء callback
       onParticipate(email);
 
-      // 🟢 خزّن الإيميل
+      // 🟢 خزّن الإيميل الحالي
       localStorage.setItem("currentUserEmail", email);
 
       // 🟢 تعديل بيانات السحب في localStorage
@@ -72,6 +72,18 @@ const ParticipationModal = ({
       }
 
       localStorage.setItem("drawsData", JSON.stringify(drawsData));
+
+      // 🟢 أضف المشاركة في userParticipations (عشان تظهر في Index على طول)
+      const participations = JSON.parse(localStorage.getItem("userParticipations") || "[]");
+      if (!participations.some((p: any) => p.email === email && p.prize === prize.name)) {
+        participations.push({
+          email,
+          prize: prize.name,
+          status: "pending", // أولها pending
+          timestamp: new Date().toISOString(),
+        });
+        localStorage.setItem("userParticipations", JSON.stringify(participations));
+      }
 
       setEmail("");
       onClose();
@@ -103,7 +115,6 @@ const ParticipationModal = ({
   // 🟢 احسب الباقي من localStorage أو props
   const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
   const localMax = drawsData[prize.id]?.maxParticipants ?? prize.maxParticipants;
-  const participantsCount = drawsData[prize.id]?.participants?.length || 0;
   const remaining = localMax ?? prize.maxParticipants;
 
   return (
@@ -136,8 +147,7 @@ const ParticipationModal = ({
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                   style={{
                     width: `${
-                      ((prize.maxParticipants - remaining) /
-                        prize.maxParticipants) *
+                      ((prize.maxParticipants - remaining) / prize.maxParticipants) *
                       100
                     }%`,
                   }}

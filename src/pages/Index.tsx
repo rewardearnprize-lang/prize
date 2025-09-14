@@ -63,46 +63,53 @@ const Index = () => {
   }, [dispatch]);
 
   // 🟢 التعامل مع success=true بعد الرجوع من Netlify
-  useEffect(() => {
-    if (success === "true" && prizeId) {
-      const finalEmail = email || localStorage.getItem("currentUserEmail") || "";
+useEffect(() => {
+  if (success === "true" && prizeId) {
+    const finalEmail = email || localStorage.getItem("currentUserEmail") || "";
 
-      if (finalEmail) {
-        // حفظ الإيميل
-        localStorage.setItem("currentUserEmail", finalEmail);
+    if (finalEmail) {
+      localStorage.setItem("currentUserEmail", finalEmail);
 
-        // تعديل بيانات السحب في localStorage
-        const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
-        if (!drawsData[prizeId]) {
-          drawsData[prizeId] = {
-            participants: [],
-            prizeName: prizeName,
-            maxParticipants: 100,
-          };
-        }
-
-        if (!drawsData[prizeId].participants.includes(finalEmail)) {
-          drawsData[prizeId].participants.push(finalEmail);
-
-          if (drawsData[prizeId].maxParticipants > 0) {
-            drawsData[prizeId].maxParticipants -= 1;
-          }
-        }
-
-        localStorage.setItem("drawsData", JSON.stringify(drawsData));
+      const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
+      if (!drawsData[prizeId]) {
+        drawsData[prizeId] = {
+          participants: [],
+          prizeName: prizeName,
+          maxParticipants: 100,
+        };
       }
 
-      setParticipantEmail(finalEmail);
-      setShowSuccessModal(true);
+      if (!drawsData[prizeId].participants.includes(finalEmail)) {
+        drawsData[prizeId].participants.push(finalEmail);
 
-      // إزالة success من الرابط
-      setTimeout(() => {
-        params.delete("success");
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.history.replaceState({}, "", newUrl);
-      }, 500);
+        if (drawsData[prizeId].maxParticipants > 0) {
+          drawsData[prizeId].maxParticipants -= 1;
+        }
+      }
+
+      localStorage.setItem("drawsData", JSON.stringify(drawsData));
+
+      // ✅ أضف المشاركة هنا
+      const participations = JSON.parse(localStorage.getItem("userParticipations") || "[]");
+      participations.push({
+        email: finalEmail,
+        prize: prizeName || "",
+        status: "completed",
+        timestamp: new Date().toISOString(),
+      });
+      localStorage.setItem("userParticipations", JSON.stringify(participations));
     }
-  }, [success, prizeId, prizeName, email]);
+
+    setParticipantEmail(finalEmail);
+    setShowSuccessModal(true);
+
+    setTimeout(() => {
+      params.delete("success");
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, "", newUrl);
+    }, 500);
+  }
+}, [success, prizeId, prizeName, email]);
 
   const handlePrizeClick = (draw: Draw) => {
     const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
