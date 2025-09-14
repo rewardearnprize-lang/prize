@@ -355,7 +355,39 @@ const Index = () => {
       </div>
 
       <SocialMediaSection />
+      <div className="mt-12 text-center">
+  <Card className="max-w-2xl mx-auto bg-gradient-to-r from-purple-500/20 to-purple-500/20 border-purple-500/30">
+    <CardContent className="p-6">
+      <h3 className="text-2xl font-bold text-white mb-3">How the System Works?</h3>
+      <div className="grid md:grid-cols-3 gap-4 text-center">
+        <div className="space-y-2">
+          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-white font-bold">1</span>
+          </div>
+          <p className="text-white font-medium">Choose an Offer</p>
+          <p className="text-gray-300 text-sm">Select from the available offers</p>
+        </div>
+        <div className="space-y-2">
+          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-white font-bold">2</span>
+          </div>
+          <p className="text-white font-medium">Complete Tasks</p>
+          <p className="text-gray-300 text-sm">Follow the instructions and finish the tasks</p>
+        </div>
+        <div className="space-y-2">
+          <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-white font-bold">3</span>
+          </div>
+          <p className="text-white font-medium">Earn Points</p>
+          <p className="text-gray-300 text-sm">Get points and enter the draw</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</div>
+
       <OffersSection />
+
       <WinnersList />
 
       <ParticipationModal
