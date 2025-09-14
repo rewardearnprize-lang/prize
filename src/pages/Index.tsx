@@ -31,9 +31,9 @@ const Index = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showTransparencyModal, setShowTransparencyModal] = useState(false);
   const [participantEmail, setParticipantEmail] = useState("");
+
   const { t, changeLanguage } = useTranslation();
   const { toast } = useToast();
-
   const dispatch = useAppDispatch();
   const { draws, loading } = useAppSelector((state) => state.draws);
 
@@ -51,58 +51,52 @@ const Index = () => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  // لما يرجع من hamas ومعاه success → أظهر modal وخصم واحد من Firebase + سجل الإيميل
-// ✅ في بداية الكومبوننت خلي state للإيميل المؤقت
-const [manualEmail, setManualEmail] = useState("");
+  // ✅ معالجة نجاح المشاركة بعد الرجوع من اللينك الخارجي
+  useEffect(() => {
+    const handleSuccess = async () => {
+      if (success === "true" && prizeId) {
+        let finalEmail = email || localStorage.getItem("currentUserEmail") || "";
 
-// ✅ جوة useEffect بتاع handleSuccess
-useEffect(() => {
-  const handleSuccess = async () => {
-    if (success === "true" && prizeId) {
-      // لو الإيميل جاي في اللينك → استعمله
-      let finalEmail = email || localStorage.getItem("currentUserEmail") || "";
-
-      if (!finalEmail) {
-        // 🟡 مفيش إيميل → افتح المودال واطلب منه يدخل إيميله
-        setShowSuccessModal(true);
-        return;
-      }
-
-      setParticipantEmail(finalEmail);
-      setShowSuccessModal(true);
-
-      try {
-        const prizeRef = doc(firestore, "draws", prizeId as string);
-        const snap = await getDoc(prizeRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
-          const participants: string[] = data.participants || [];
-
-          const alreadyParticipated = participants.includes(finalEmail);
-
-          if (!alreadyParticipated) {
-            await updateDoc(prizeRef, {
-              remainingParticipants: Math.max(currentRemaining - 1, 0),
-              participants: [...participants, finalEmail],
-            });
-          }
+        if (!finalEmail) {
+          setShowSuccessModal(true);
+          return;
         }
-        // 🟢 خزّنه في localStorage
-        localStorage.setItem("currentUserEmail", finalEmail);
-      } catch (err) {
-        console.error("❌ Error updating participants:", err);
+
+        setParticipantEmail(finalEmail);
+        setShowSuccessModal(true);
+
+        try {
+          const prizeRef = doc(firestore, "draws", prizeId as string);
+          const snap = await getDoc(prizeRef);
+
+          if (snap.exists()) {
+            const data = snap.data();
+            const currentRemaining = data.remainingParticipants ?? data.maxParticipants ?? 0;
+            const participants: string[] = data.participants || [];
+
+            if (!participants.includes(finalEmail)) {
+              await updateDoc(prizeRef, {
+                remainingParticipants: Math.max(currentRemaining - 1, 0),
+                participants: [...participants, finalEmail],
+              });
+            }
+          }
+
+          localStorage.setItem("currentUserEmail", finalEmail);
+        } catch (err) {
+          console.error("❌ Error updating participants:", err);
+        }
+
+        params.delete("success");
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, "", newUrl);
       }
+    };
 
-      params.delete("success");
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", newUrl);
-    }
-  };
+    handleSuccess();
+  }, [success, prizeId, email]);
 
-  handleSuccess();
-}, [success, prizeId, email]);
-
+  // ✅ عند الضغط على جائزة
   const handlePrizeClick = (draw: Draw) => {
     const participantsCount = draw.participants?.length || 0;
     const max = draw.maxParticipants || 0;
@@ -120,35 +114,20 @@ useEffect(() => {
     setShowParticipationModal(true);
   };
 
+  // ✅ المشاركة: توجيه للينك الخارجي
   const handleParticipation = (email: string) => {
     if (selectedPrize) {
-      const userParticipation = {
-        email: email,
-        prize: selectedPrize.name,
-        status: "pending",
-        timestamp: new Date().toISOString(),
-      };
-
-      const existingParticipations = JSON.parse(localStorage.getItem("userParticipations") || "[]");
-      existingParticipations.push(userParticipation);
-      localStorage.setItem("userParticipations", JSON.stringify(existingParticipations));
-
-      // 🟢 سجلنا المستخدم الحالي
       localStorage.setItem("currentUserEmail", email);
 
-      // 🟢 نوجهه لصفحة hamas
-if (selectedPrize.offerUrl) {
-  // 🟢 لو الأدمن حاطط لينك → ودّيه هناك
-  window.location.href = `${selectedPrize.offerUrl}?prizeId=${selectedPrize.id}&email=${encodeURIComponent(email)}`;
-} else {
-  // ⚠️ fallback لو مفيش لينك
-  toast({
-    title: "لا يوجد لينك عرض",
-    description: "من فضلك تواصل مع الإدارة",
-    variant: "destructive",
-  });
-}
-
+      if (selectedPrize.offerUrl) {
+        window.location.href = `${selectedPrize.offerUrl}?prizeId=${selectedPrize.id}&email=${encodeURIComponent(email)}&success=true&prizeName=${encodeURIComponent(selectedPrize.name)}`;
+      } else {
+        toast({
+          title: "لا يوجد لينك عرض",
+          description: "من فضلك تواصل مع الإدارة",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -176,38 +155,6 @@ if (selectedPrize.offerUrl) {
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
               {t("site.title")}
             </h1>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">15,847</p>
-                <p className="text-sm text-gray-300">{t("stats.participants")}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <Gift className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">342</p>
-                <p className="text-sm text-gray-300">{t("stats.winners")}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">$125K</p>
-                <p className="text-sm text-gray-300">{t("stats.prizeValue")}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <Clock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">24/7</p>
-                <p className="text-sm text-gray-300">{t("stats.continuous")}</p>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => setShowTransparencyModal(true)}
-              variant="outline"
-              className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20 mb-8"
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              {t("transparency.title")}
-            </Button>
           </div>
         </div>
       </div>
@@ -260,23 +207,17 @@ if (selectedPrize.offerUrl) {
                             ></div>
                           </div>
 
-                          <div className="text-center text-sm text-gray-400">
-                            {draw.status === "active"
-                              ? `السحب ينتهي في ${draw.endDate || ""}`
-                              : "مغلق"}
-                          </div>
+                          <Button
+                            onClick={() => handlePrizeClick(draw)}
+                            disabled={draw.status !== "active"}
+                            className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Target className="w-4 h-4 mr-2" />
+                            {draw.status !== "active"
+                              ? t("button.completed")
+                              : t("button.participateInDraw")}
+                          </Button>
                         </div>
-
-                        <Button
-                          onClick={() => handlePrizeClick(draw)}
-                          disabled={draw.status !== "active"}
-                          className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Target className="w-4 h-4 mr-2" />
-                          {draw.status !== "active"
-                            ? t("button.completed")
-                            : t("button.participateInDraw")}
-                        </Button>
                       </CardContent>
                     </Card>
                   );
