@@ -109,7 +109,7 @@ const [newDraw, setNewDraw] = useState({
     }
 
     const activeParticipants = participants.filter(
-      (p) => p.status === "active"
+      (p) => p.status === "pending"
     );
     if (activeParticipants.length === 0) {
       toast({
@@ -598,7 +598,7 @@ return (
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
                   {participants
-                    .filter((p) => p.status === "active")
+                    .filter((p) => p.status === "pending")
                     .map((participant) => (
                       <SelectItem
                         key={participant.id}
@@ -695,7 +695,6 @@ return (
               </div>
             </div>
 
-            {/* 🟢 تعديل لينك العرض */}
             <div>
               <Label className="text-gray-300">لينك العرض</Label>
               <Input

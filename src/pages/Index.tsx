@@ -35,6 +35,19 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDraws } from "@/store/slices/drawsSlice";
 import type { Draw } from "@/store/slices/drawsSlice";
 
+// 🟢 Firebase imports
+import { firestore } from "@/lib/firebase";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  serverTimestamp,
+  collection,
+  onSnapshot,
+} from "firebase/firestore";
+
 const Index = () => {
   const [selectedPrize, setSelectedPrize] = useState<Draw | null>(null);
   const [showSocialModal, setShowSocialModal] = useState(false);
@@ -42,6 +55,8 @@ const Index = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showTransparencyModal, setShowTransparencyModal] = useState(false);
   const [participantEmail, setParticipantEmail] = useState("");
+
+  const [participantsCounts, setParticipantsCounts] = useState<Record<string, number>>({});
 
   const { t, changeLanguage } = useTranslation();
   const { toast } = useToast();
@@ -62,62 +77,82 @@ const Index = () => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  // 🟢 التعامل مع success=true بعد الرجوع من Netlify
-useEffect(() => {
-  if (success === "true" && prizeId) {
-    const finalEmail = email || localStorage.getItem("currentUserEmail") || "";
-
-    if (finalEmail) {
-      localStorage.setItem("currentUserEmail", finalEmail);
-
-      const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
-      if (!drawsData[prizeId]) {
-        drawsData[prizeId] = {
-          participants: [],
-          prizeName: prizeName,
-          maxParticipants: 100,
-        };
-      }
-
-      if (!drawsData[prizeId].participants.includes(finalEmail)) {
-        drawsData[prizeId].participants.push(finalEmail);
-
-        if (drawsData[prizeId].maxParticipants > 0) {
-          drawsData[prizeId].maxParticipants -= 1;
-        }
-      }
-
-      localStorage.setItem("drawsData", JSON.stringify(drawsData));
-
-      // ✅ أضف المشاركة هنا
-      const participations = JSON.parse(localStorage.getItem("userParticipations") || "[]");
-      participations.push({
-        email: finalEmail,
-        prize: prizeName || "",
-        status: "completed",
-        timestamp: new Date().toISOString(),
+  // 🟢 تحديث أعداد المشاركين realtime
+  useEffect(() => {
+    const participantsCol = collection(firestore, "participants");
+    const unsub = onSnapshot(participantsCol, (snapshot) => {
+      const counts: Record<string, number> = {};
+      snapshot.docs.forEach((d) => {
+        const data = d.data() as any;
+        const pid = data.prizeId || data.prize || "__no_prize__";
+        counts[pid] = (counts[pid] || 0) + 1;
       });
-      localStorage.setItem("userParticipations", JSON.stringify(participations));
-    }
+      setParticipantsCounts(counts);
+    }, (err) => {
+      console.error("participants onSnapshot error:", err);
+    });
 
-    setParticipantEmail(finalEmail);
-    setShowSuccessModal(true);
+    return () => unsub();
+  }, []);
 
-    setTimeout(() => {
-      params.delete("success");
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", newUrl);
-    }, 500);
-  }
-}, [success, prizeId, prizeName, email]);
+  useEffect(() => {
+    const handleParticipationSuccess = async () => {
+      if (success === "true" && prizeId) {
+        const finalEmail = email || localStorage.getItem("currentUserEmail") || "";
+
+        if (finalEmail) {
+          localStorage.setItem("currentUserEmail", finalEmail);
+
+          try {
+            const prizeRef = doc(firestore, "draws", prizeId);
+            const prizeSnap = await getDoc(prizeRef);
+
+            if (prizeSnap.exists()) {
+              const prizeData = prizeSnap.data();
+              const participants: string[] = prizeData?.participants || [];
+
+              if (!participants.includes(finalEmail)) {
+                await updateDoc(prizeRef, {
+                  participants: arrayUnion(finalEmail),
+                });
+              }
+            }
+
+            const participantRef = doc(firestore, "participants", finalEmail);
+            await setDoc(
+              participantRef,
+              {
+                email: finalEmail,
+                prize: prizeName || "",
+                prizeId: prizeId,
+                status: "completed",
+                timestamp: serverTimestamp(),
+              },
+              { merge: true }
+            );
+          } catch (error) {
+            console.error("❌ Firebase Error:", error);
+          }
+        }
+
+        setParticipantEmail(finalEmail);
+        setShowSuccessModal(true);
+
+        setTimeout(() => {
+          params.delete("success");
+          const newUrl = `${window.location.pathname}?${params.toString()}`;
+          window.history.replaceState({}, "", newUrl);
+        }, 500);
+      }
+    };
+
+    handleParticipationSuccess();
+  }, [success, prizeId, prizeName, email]);
 
   const handlePrizeClick = (draw: Draw) => {
-    const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
-    const localParticipants = drawsData[draw.id]?.participants?.length || 0;
-
-    const participantsCount =
-      (draw.participants?.length || 0) + localParticipants;
     const max = draw.maxParticipants || 0;
+    const liveCount = participantsCounts[draw.id];
+    const participantsCount = typeof liveCount === "number" ? liveCount : (draw.participants?.length || 0);
 
     if (max > 0 && participantsCount >= max) {
       toast({
@@ -128,11 +163,13 @@ useEffect(() => {
       return;
     }
 
-    setSelectedPrize(draw);
+    setSelectedPrize({
+      ...draw,
+      prizeValue: Number(draw.prizeValue) || 0,
+    });
     setShowParticipationModal(true);
   };
 
-  // 🟢 عند الاشتراك: روح على offerUrl ومعاه redirect=netlify
   const handleParticipation = (email: string) => {
     if (selectedPrize) {
       localStorage.setItem("currentUserEmail", email);
@@ -168,7 +205,6 @@ useEffect(() => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <Header onLanguageChange={changeLanguage} />
 
-      {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative z-10 container mx-auto px-4 py-16">
@@ -183,51 +219,14 @@ useEffect(() => {
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
               {t("site.title")}
             </h1>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              <div className="bg-white/10 rounded-lg p-4">
-                <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">15,847</p>
-                <p className="text-sm text-gray-300">
-                  {t("stats.participants")}
-                </p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <Gift className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">342</p>
-                <p className="text-sm text-gray-300">{t("stats.winners")}</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">$125K</p>
-                <p className="text-sm text-gray-300">
-                  {t("stats.prizeValue")}
-                </p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <Clock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">24/7</p>
-                <p className="text-sm text-gray-300">{t("stats.continuous")}</p>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => setShowTransparencyModal(true)}
-              variant="outline"
-              className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20 mb-8"
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              {t("transparency.title")}
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* ✅ حالة المستخدم */}
+     
       <div className="container mx-auto px-4">
         <UserParticipationStatus />
 
-        {/* الجوائز */}
         <div className="py-16">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-white mb-4">
@@ -247,14 +246,11 @@ useEffect(() => {
               draws
                 .filter((draw) => draw.status === "active")
                 .map((draw) => {
-                  const drawsData = JSON.parse(
-                    localStorage.getItem("drawsData") || "{}"
-                  );
-                  const localParticipants =
-                    drawsData[draw.id]?.participants?.length || 0;
-
                   const participantsCount =
-                    (draw.participants?.length || 0) + localParticipants;
+                    typeof participantsCounts[draw.id] === "number"
+                      ? participantsCounts[draw.id]
+                      : (draw.participants?.length || 0);
+
                   const max = draw.maxParticipants || 0;
                   const remaining = Math.max(max - participantsCount, 0);
 
@@ -267,7 +263,7 @@ useEffect(() => {
                         <div className="text-6xl mb-4">🎁</div>
                         <CardTitle className="text-white">{draw.name}</CardTitle>
                         <CardDescription className="text-green-400 text-2xl font-bold">
-                          {draw.prize || "جائزة"} - ${draw.prizeValue || 0}
+                          {draw.prize || "جائزة"} - ${Number(draw.prizeValue) || 0}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -281,9 +277,7 @@ useEffect(() => {
                             <div
                               className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                               style={{
-                                width: `${
-                                  (participantsCount / (max || 1)) * 100
-                                }%`,
+                                width: `${(participantsCount / (max || 1)) * 100}%`,
                               }}
                             ></div>
                           </div>
@@ -320,7 +314,7 @@ useEffect(() => {
       <ParticipationModal
         isOpen={showParticipationModal}
         onClose={() => setShowParticipationModal(false)}
-        prize={selectedPrize}
+        prize={selectedPrize ? { ...selectedPrize, prizeValue: Number(selectedPrize.prizeValue) || 0 } : null}
         onParticipate={handleParticipation}
       />
 

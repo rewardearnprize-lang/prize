@@ -9,19 +9,22 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { firestore, storage } from "../../lib/firebase"; // ✅ storage لازم يكون متعرف في firebase.ts
+import { firestore, storage } from "../../lib/firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export interface Offer {
+  iconText: string;
   id: string;
   title: string;
   description: string;
-  points: number;
+  points: number; // الآن number
   category: string;
+  imageUrl: string;
+  link?: string;
+  offerurl: string;
   status: "active" | "inactive";
   completedCount: number;
   createdDate: string;
-  imageUrl?: string;
 }
 
 interface OffersState {
@@ -36,7 +39,7 @@ const initialState: OffersState = {
   error: null,
 };
 
-// 🔹 رفع صورة إلى Firebase Storage
+// رفع صورة إلى Firebase Storage
 const uploadImage = async (file: File): Promise<string> => {
   const storageRef = ref(storage, `offers/${Date.now()}-${file.name}`);
   await uploadBytes(storageRef, file);
@@ -48,7 +51,6 @@ export const fetchOffers = createAsyncThunk(
   "offers/fetchOffers",
   async (_, { rejectWithValue }) => {
     try {
-      console.log("🔍 Fetching offers from Firestore...");
       const offersCollection = collection(firestore, "offers");
       const q = query(offersCollection, orderBy("createdDate", "desc"));
       const querySnapshot = await getDocs(q);
@@ -56,25 +58,23 @@ export const fetchOffers = createAsyncThunk(
       if (!querySnapshot.empty) {
         const offersArray: Offer[] = querySnapshot.docs.map((docSnap) => {
           const data = docSnap.data();
-
           return {
             id: docSnap.id,
             title: data.title,
             description: data.description,
-            points: data.points,
+            points: Number(data.points) || 0,
             category: data.category,
             status: data.status === "active" ? "active" : "inactive",
             completedCount: data.completedCount ?? 0,
             createdDate: data.createdDate ?? new Date().toISOString(),
             imageUrl: data.imageUrl ?? "",
+            offerurl: data.offerurl ?? "",
+            iconText: data.iconText ?? "",
           };
         });
-
-        console.log("✅ Offers fetched successfully:", offersArray.length);
         return offersArray;
       } else {
-        console.log("📝 No offers found, returning default data");
-        const defaultOffers: Offer[] = [
+        return [
           {
             id: "default-1",
             title: "اشترك في قناة تليجرام",
@@ -85,6 +85,8 @@ export const fetchOffers = createAsyncThunk(
             completedCount: 0,
             createdDate: new Date().toISOString(),
             imageUrl: "/images/telegram.png",
+            offerurl: "",
+            iconText: "",
           },
           {
             id: "default-2",
@@ -96,18 +98,18 @@ export const fetchOffers = createAsyncThunk(
             completedCount: 0,
             createdDate: new Date().toISOString(),
             imageUrl: "/images/facebook.png",
+            offerurl: "",
+            iconText: "",
           },
         ];
-        return defaultOffers;
       }
     } catch (error) {
-      console.error("❌ Failed to fetch offers:", error);
       return rejectWithValue("فشل في جلب العروض");
     }
   }
 );
 
-// Add new offer to Firestore (يدعم رفع صورة)
+// Add new offer
 export const addOffer = createAsyncThunk(
   "offers/addOffer",
   async (
@@ -117,8 +119,6 @@ export const addOffer = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      console.log("➕ Adding new offer to Firestore...");
-
       let imageUrl = offerData.imageUrl || "";
       if (offerData.imageFile) {
         imageUrl = await uploadImage(offerData.imageFile);
@@ -126,6 +126,7 @@ export const addOffer = createAsyncThunk(
 
       const newOffer: Omit<Offer, "id"> = {
         ...offerData,
+        points: Number(offerData.points) || 0,
         imageUrl,
         createdDate: new Date().toISOString(),
         completedCount: 0,
@@ -133,18 +134,14 @@ export const addOffer = createAsyncThunk(
 
       const offersCollection = collection(firestore, "offers");
       const docRef = await addDoc(offersCollection, newOffer);
-      const addedOffer = { ...newOffer, id: docRef.id };
-
-      console.log("✅ Offer added successfully:", addedOffer);
-      return addedOffer;
+      return { ...newOffer, id: docRef.id };
     } catch (error) {
-      console.error("❌ Failed to add offer:", error);
       return rejectWithValue("فشل في إضافة العرض");
     }
   }
 );
 
-// Update offer in Firestore (يدعم تحديث الصورة)
+// Update offer
 export const updateOffer = createAsyncThunk(
   "offers/updateOffer",
   async (
@@ -152,9 +149,10 @@ export const updateOffer = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      console.log("🔄 Updating offer in Firestore:", id);
-
       let updatedData = { ...offerData };
+      if (offerData.points !== undefined) {
+        updatedData.points = Number(offerData.points) || 0;
+      }
 
       if (offerData.imageFile) {
         const imageUrl = await uploadImage(offerData.imageFile);
@@ -165,34 +163,28 @@ export const updateOffer = createAsyncThunk(
       const offerDoc = doc(firestore, "offers", id);
       await updateDoc(offerDoc, updatedData);
 
-      console.log("✅ Offer updated successfully");
       return { id, ...updatedData };
     } catch (error) {
-      console.error("❌ Failed to update offer:", error);
       return rejectWithValue("فشل في تحديث العرض");
     }
   }
 );
 
-// Delete offer from Firestore
+// Delete offer
 export const deleteOffer = createAsyncThunk(
   "offers/deleteOffer",
   async (id: string, { rejectWithValue }) => {
     try {
-      console.log("🗑️ Deleting offer from Firestore:", id);
       const offerDoc = doc(firestore, "offers", id);
       await deleteDoc(offerDoc);
-
-      console.log("✅ Offer deleted successfully");
       return id;
     } catch (error) {
-      console.error("❌ Failed to delete offer:", error);
       return rejectWithValue("فشل في حذف العرض");
     }
   }
 );
 
-// Toggle offer status in Firestore
+// Toggle offer status
 export const toggleOfferStatus = createAsyncThunk(
   "offers/toggleOfferStatus",
   async (
@@ -200,17 +192,12 @@ export const toggleOfferStatus = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      console.log("🔄 Toggling offer status in Firestore:", id);
       const offerDoc = doc(firestore, "offers", id);
       const newStatus: "active" | "inactive" =
         currentStatus === "active" ? "inactive" : "active";
-
       await updateDoc(offerDoc, { status: newStatus });
-
-      console.log("✅ Offer status toggled successfully");
       return { id, status: newStatus };
     } catch (error) {
-      console.error("❌ Failed to toggle offer status:", error);
       return rejectWithValue("فشل في تغيير حالة العرض");
     }
   }
@@ -226,20 +213,24 @@ const offersSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch offers
+      // Fetch
       .addCase(fetchOffers.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchOffers.fulfilled, (state, action) => {
-        state.loading = false;
-        state.offers = action.payload;
-      })
+.addCase(fetchOffers.fulfilled, (state, action) => {
+  state.loading = false;
+  state.offers = action.payload.map((offer) => ({
+    ...offer,
+    status: offer.status === "active" ? "active" : "inactive",
+  }));
+})
+
       .addCase(fetchOffers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Add offer
+      // Add
       .addCase(addOffer.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -252,7 +243,7 @@ const offersSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Update offer
+      // Update
       .addCase(updateOffer.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -270,22 +261,20 @@ const offersSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Delete offer
+      // Delete
       .addCase(deleteOffer.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(deleteOffer.fulfilled, (state, action) => {
         state.loading = false;
-        state.offers = state.offers.filter(
-          (offer) => offer.id !== action.payload
-        );
+        state.offers = state.offers.filter((offer) => offer.id !== action.payload);
       })
       .addCase(deleteOffer.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Toggle offer status
+      // Toggle status
       .addCase(toggleOfferStatus.pending, (state) => {
         state.loading = true;
         state.error = null;

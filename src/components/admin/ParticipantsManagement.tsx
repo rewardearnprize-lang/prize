@@ -1,7 +1,10 @@
+// src/components/ParticipantsManagement.tsx
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { collection, onSnapshot } from "firebase/firestore";
+import { firestore } from "@/lib/firebase";
 import {
   Table,
   TableBody,
@@ -69,9 +72,19 @@ const ParticipantsManagement = () => {
     tiktok: ""
   });
 
-  useEffect(() => {
-    dispatch(fetchParticipants());
-  }, [dispatch]);
+useEffect(() => {
+  const unsub = onSnapshot(collection(firestore, "participants"), (snapshot) => {
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Participant[];
+
+    // هنا بترسلي الداتا للـ Redux أو تعملي setState محلي
+    dispatch({ type: "participants/setParticipants", payload: data });
+  });
+
+  return () => unsub();
+}, [dispatch]);
 
   useEffect(() => {
     if (error) {
@@ -113,7 +126,7 @@ const ParticipantsManagement = () => {
         tiktok: newParticipant.tiktok || undefined
       },
       referralCode: `REF${Date.now()}`,
-      status: "active" as const
+      status: "pending" as const
     };
 
     const result = await dispatch(addParticipant(participantData));
@@ -172,21 +185,19 @@ const ParticipantsManagement = () => {
 
   const handleStatusChange = async (
     id: string,
-    status: "active" | "inactive" | "banned"
+    status: "pending" | "accepted" | "rejected"
   ) => {
     await dispatch(updateParticipantStatus({ id, status }));
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "active":
-        return <Badge className="bg-green-500/20 text-green-400">نشط</Badge>;
-      case "inactive":
-        return (
-          <Badge className="bg-yellow-500/20 text-yellow-400">غير نشط</Badge>
-        );
-      case "banned":
-        return <Badge className="bg-red-500/20 text-red-400">محظور</Badge>;
+      case "pending":
+        return <Badge className="bg-yellow-500/20 text-yellow-400">قيد المراجعة</Badge>;
+      case "accepted":
+        return <Badge className="bg-green-500/20 text-green-400">مقبول</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-500/20 text-red-400">مرفوض</Badge>;
       default:
         return <Badge className="bg-gray-500/20 text-gray-400">غير محدد</Badge>;
     }
@@ -248,49 +259,10 @@ const ParticipantsManagement = () => {
                     placeholder="example@email.com"
                   />
                 </div>
-                <div>
-                  <Label className="text-gray-300">رقم الهاتف</Label>
-                  <Input
-                    value={newParticipant.phone}
-                    onChange={(e) =>
-                      setNewParticipant({
-                        ...newParticipant,
-                        phone: e.target.value
-                      })
-                    }
-                    className="bg-gray-800 border-gray-600 text-white"
-                    placeholder="+966500000000"
-                  />
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-300">فيسبوك</Label>
-                    <Input
-                      value={newParticipant.facebook}
-                      onChange={(e) =>
-                        setNewParticipant({
-                          ...newParticipant,
-                          facebook: e.target.value
-                        })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                      placeholder="رابط فيسبوك"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">إنستاجرام</Label>
-                    <Input
-                      value={newParticipant.instagram}
-                      onChange={(e) =>
-                        setNewParticipant({
-                          ...newParticipant,
-                          instagram: e.target.value
-                        })
-                      }
-                      className="bg-gray-800 border-gray-600 text-white"
-                      placeholder="رابط إنستاجرام"
-                    />
-                  </div>
+
+
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button
@@ -334,14 +306,14 @@ const ParticipantsManagement = () => {
                   <SelectItem value="all" className="text-white">
                     جميع الحالات
                   </SelectItem>
-                  <SelectItem value="active" className="text-white">
-                    نشط
+                  <SelectItem value="pending" className="text-white">
+                    قيد المراجعة
                   </SelectItem>
-                  <SelectItem value="inactive" className="text-white">
-                    غير نشط
+                  <SelectItem value="accepted" className="text-white">
+                    مقبول
                   </SelectItem>
-                  <SelectItem value="banned" className="text-white">
-                    محظور
+                  <SelectItem value="rejected" className="text-white">
+                    مرفوض
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -432,21 +404,21 @@ const ParticipantsManagement = () => {
                         <Select
                           value={participant.status}
                           onValueChange={(
-                            value: "active" | "inactive" | "banned"
+                            value: "pending" | "accepted" | "rejected"
                           ) => handleStatusChange(participant.id, value)}
                         >
-                          <SelectTrigger className="w-24 bg-transparent border-none p-0 h-6">
+                          <SelectTrigger className="w-28 bg-transparent border-none p-0 h-6">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-800 border-gray-600">
-                            <SelectItem value="active" className="text-white">
-                              نشط
+                            <SelectItem value="pending" className="text-white">
+                              قيد المراجعة
                             </SelectItem>
-                            <SelectItem value="inactive" className="text-white">
-                              غير نشط
+                            <SelectItem value="accepted" className="text-white">
+                              مقبول
                             </SelectItem>
-                            <SelectItem value="banned" className="text-white">
-                              محظور
+                            <SelectItem value="rejected" className="text-white">
+                              مرفوض
                             </SelectItem>
                           </SelectContent>
                         </Select>

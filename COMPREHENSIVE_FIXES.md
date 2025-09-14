@@ -20,7 +20,7 @@
       ar: string;
       en: string;
     };
-    prizeValue?: string;
+    prizeValue?: number;
     proofOfDelivery?: {
       title: { ar: string; en: string };
       url: string;

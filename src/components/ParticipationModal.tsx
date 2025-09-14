@@ -1,5 +1,5 @@
 // src/components/ParticipationModal.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  prize: any;
+  prize: {
+    id: string;
+    name: string;
+    image?: string;
+    prizeValue?: number;
+    value?: string;
+    maxParticipants?: number;
+    offerUrl?: string;
+  } | null;
   onParticipate: (email: string) => void;
 }
 
@@ -28,14 +38,31 @@ const ParticipationModal = ({
 }: ParticipationModalProps) => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
+
+  const fetchJoinedCount = async () => {
+    if (!prize) return;
+    const q = query(
+      collection(firestore, "participants"),
+      where("prizeId", "==", prize.id)
+    );
+    const snap = await getDocs(q);
+    setJoinedCount(snap.size);
+  };
+
+  useEffect(() => {
+    if (isOpen && prize) {
+      fetchJoinedCount();
+    }
+  }, [isOpen, prize]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
+    if (!email || !prize) {
       toast({
-        title: "خطأ",
-        description: "من فضلك أدخل البريد الإلكتروني",
+        title: "Error",
+        description: "Please enter your email.",
         variant: "destructive",
       });
       return;
@@ -43,79 +70,49 @@ const ParticipationModal = ({
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await addDoc(collection(firestore, "participants"), {
+        email,
+        prize: prize.name,
+        prizeId: prize.id,
+        status: "pending",
+        joinDate: new Date().toISOString(),
+      });
 
-      // 🟢 استدعاء callback
+      await fetchJoinedCount();
+
       onParticipate(email);
-
-      // 🟢 خزّن الإيميل الحالي
-      localStorage.setItem("currentUserEmail", email);
-
-      // 🟢 تعديل بيانات السحب في localStorage
-      const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
-      if (!drawsData[prize.id]) {
-        drawsData[prize.id] = {
-          participants: [],
-          prizeName: prize.name,
-          maxParticipants: prize.maxParticipants || 100,
-        };
-      }
-
-      if (!drawsData[prize.id].participants.includes(email)) {
-        drawsData[prize.id].participants.push(email);
-
-        // قلل العدد
-        if (drawsData[prize.id].maxParticipants > 0) {
-          drawsData[prize.id].maxParticipants -= 1;
-        }
-      }
-
-      localStorage.setItem("drawsData", JSON.stringify(drawsData));
-
-      // 🟢 أضف المشاركة في userParticipations (عشان تظهر في Index على طول)
-      const participations = JSON.parse(localStorage.getItem("userParticipations") || "[]");
-      if (!participations.some((p: any) => p.email === email && p.prize === prize.name)) {
-        participations.push({
-          email,
-          prize: prize.name,
-          status: "pending", // أولها pending
-          timestamp: new Date().toISOString(),
-        });
-        localStorage.setItem("userParticipations", JSON.stringify(participations));
-      }
 
       setEmail("");
       onClose();
 
       toast({
-        title: "تم تسجيل مشاركتك 🎉",
+        title: "Participation Registered 🎉",
         description:
-          "سيتم تحويلك إلى صفحة العرض الآن. أكمل المطلوب لتتأهل للسحب.",
+          "You will now be redirected to the prize page. Complete the tasks to qualify for the draw.",
       });
 
-      // 🟢 لو في offerUrl حطه هنا
-      if (prize?.offerUrl) {
+      if (prize.offerUrl) {
         const redirectUrl = `${prize.offerUrl}?prizeId=${prize.id}&prizeName=${encodeURIComponent(
           prize.name
         )}&email=${encodeURIComponent(email)}`;
         window.location.href = redirectUrl;
-      } else {
-        toast({
-          title: "لا يوجد لينك للعرض",
-          description: "من فضلك تواصل مع الإدارة",
-          variant: "destructive",
-        });
       }
-    }, 1500);
+    } catch (error) {
+      console.error("Error adding participation:", error);
+      toast({
+        title: "Error",
+        description: "There was an error registering your participation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!prize) return null;
 
-  // 🟢 احسب الباقي من localStorage أو props
-  const drawsData = JSON.parse(localStorage.getItem("drawsData") || "{}");
-  const localMax = drawsData[prize.id]?.maxParticipants ?? prize.maxParticipants;
-  const remaining = localMax ?? prize.maxParticipants;
+  const remaining = prize.maxParticipants - joinedCount;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -124,21 +121,20 @@ const ParticipationModal = ({
           <DialogTitle className="text-center">
             <div className="space-y-4">
               <div className="text-4xl">{prize.image || "🎁"}</div>
-              <h2 className="text-2xl font-bold text-white">اشترك في السحب</h2>
+              <h2 className="text-2xl font-bold text-white">Enter the Draw</h2>
               <p className="text-lg text-gray-300">{prize.name}</p>
               <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
-                قيمة الجائزة: {prize.prizeValue || prize.value}
+                Prize Value: {prize.prizeValue || prize.value}
               </Badge>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Prize Info */}
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-300">المتبقي من المشاركين:</span>
+                <span className="text-gray-300">Remaining slots:</span>
                 <Badge variant="secondary">{remaining}</Badge>
               </div>
 
@@ -147,8 +143,7 @@ const ParticipationModal = ({
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                   style={{
                     width: `${
-                      ((prize.maxParticipants - remaining) / prize.maxParticipants) *
-                      100
+                      ((prize.maxParticipants - remaining) / prize.maxParticipants) * 100
                     }%`,
                   }}
                 ></div>
@@ -156,21 +151,20 @@ const ParticipationModal = ({
 
               <div className="flex items-center text-sm text-gray-400">
                 <Clock className="w-4 h-4 mr-2" />
-                <span>سيتم السحب عند اكتمال العدد المطلوب</span>
+                <span>The draw will take place once all slots are filled.</span>
               </div>
             </CardContent>
           </Card>
 
-          {/* Email Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-white font-medium mb-2">
                 <Mail className="w-4 h-4 inline mr-2" />
-                البريد الإلكتروني
+                Email
               </label>
               <Input
                 type="email"
-                placeholder="أدخل بريدك الإلكتروني"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
@@ -178,28 +172,27 @@ const ParticipationModal = ({
               />
             </div>
 
-            {/* Steps */}
             <Card className="bg-blue-500/20 border-blue-500/30">
               <CardContent className="p-4">
-                <h4 className="text-white font-medium mb-3">خطوات الاشتراك:</h4>
+                <h4 className="text-white font-medium mb-3">Steps to Participate:</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       1
                     </span>
-                    أدخل بريدك الإلكتروني
+                    Enter your email
                   </div>
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       2
                     </span>
-                    أكمل العرض المطلوب
+                    Complete the required offer
                   </div>
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       3
                     </span>
-                    انتظر تأكيد مشاركتك
+                    Wait for confirmation
                   </div>
                 </div>
               </CardContent>
@@ -212,11 +205,11 @@ const ParticipationModal = ({
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  "جاري المعالجة..."
+                  "Processing..."
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    اشترك الآن
+                    Participate Now
                   </>
                 )}
               </Button>
@@ -227,19 +220,18 @@ const ParticipationModal = ({
                 onClick={onClose}
                 className="border-white/30 text-white hover:bg-white/10"
               >
-                إلغاء
+                Cancel
               </Button>
             </div>
           </form>
 
-          {/* Warning */}
           <div className="flex items-start space-x-3 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
             <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5" />
             <div className="text-sm">
-              <p className="text-yellow-300 font-medium">مهم:</p>
+              <p className="text-yellow-300 font-medium">Important:</p>
               <p className="text-yellow-200">
-                تأكد من إكمال جميع خطوات العرض لتتأهل للسحب. ستصلك رسالة تأكيد
-                على البريد الإلكتروني بعد نجاح المشاركة.
+                Make sure to complete all steps of the offer to qualify for the draw.
+                A confirmation email will be sent once your participation is successful.
               </p>
             </div>
           </div>

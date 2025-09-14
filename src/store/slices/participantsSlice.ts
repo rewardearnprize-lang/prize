@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import {
   collection,
   getDocs,
@@ -7,24 +7,26 @@ import {
   deleteDoc,
   doc,
   query,
-  orderBy
+  orderBy,
 } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
+// ==================== Types ====================
 export interface Participant {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  totalPoints: number;
-  joinDate: string;
-  status: "active" | "inactive";
-  completedOffers: string[];
-  lastActivity: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  totalPoints?: number;
+  joinDate?: string;
+  status: "pending" | "accepted" | "rejected";
+  completedOffers?: string[];
+  lastActivity?: string;
   socialMediaLinks?: {
     twitter?: string;
     facebook?: string;
     instagram?: string;
+    tiktok?: string;
   };
 }
 
@@ -37,93 +39,34 @@ interface ParticipantsState {
 const initialState: ParticipantsState = {
   participants: [],
   loading: false,
-  error: null
+  error: null,
 };
+
+// ==================== Thunks ====================
 
 // Fetch participants from Firestore
 export const fetchParticipants = createAsyncThunk(
   "participants/fetchParticipants",
   async (_, { rejectWithValue }) => {
     try {
-      console.log("🔍 Fetching participants from Firestore...");
       const participantsCollection = collection(firestore, "participants");
       const q = query(participantsCollection, orderBy("joinDate", "desc"));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
         const participantsArray: Participant[] = querySnapshot.docs.map(
-          (doc) => ({
-            id: doc.id,
-            ...doc.data()
-          })
-        ) as Participant[];
-
-        console.log(
-          "✅ Participants fetched successfully:",
-          participantsArray.length
+          (docSnap) => {
+            const data = docSnap.data();
+            return {
+              id: docSnap.id,
+              ...data,
+              status: (data.status as "pending" | "accepted" | "rejected") || "pending",
+            };
+          }
         );
         return participantsArray;
       } else {
-        // Return default participants if no data exists
-        console.log("📝 No participants found, returning default data");
-        const defaultParticipants: Participant[] = [
-          {
-            id: "default-1",
-            name: "أحمد محمد",
-            email: "ahmed@example.com",
-            phone: "+201234567890",
-            totalPoints: 150,
-            joinDate: "2024-01-15",
-            status: "active",
-            completedOffers: ["offer_1", "offer_2"],
-            lastActivity: "2024-01-20"
-          },
-          {
-            id: "default-2",
-            name: "سارة أحمد",
-            email: "sara@example.com",
-            phone: "+201234567891",
-            totalPoints: 75,
-            joinDate: "2024-01-10",
-            status: "active",
-            completedOffers: ["offer_1"],
-            lastActivity: "2024-01-18"
-          },
-          {
-            id: "default-3",
-            name: "محمد علي",
-            email: "mohamed@example.com",
-            phone: "+201234567892",
-            totalPoints: 225,
-            joinDate: "2024-01-05",
-            status: "active",
-            completedOffers: ["offer_1", "offer_2", "offer_3"],
-            lastActivity: "2024-01-19"
-          },
-          {
-            id: "default-4",
-            name: "فاطمة حسن",
-            email: "fatima@example.com",
-            phone: "+201234567893",
-            totalPoints: 50,
-            joinDate: "2024-01-20",
-            status: "active",
-            completedOffers: ["offer_1"],
-            lastActivity: "2024-01-20"
-          },
-          {
-            id: "default-5",
-            name: "علي أحمد",
-            email: "ali@example.com",
-            phone: "+201234567894",
-            totalPoints: 125,
-            joinDate: "2024-01-12",
-            status: "active",
-            completedOffers: ["offer_1", "offer_2"],
-            lastActivity: "2024-01-17"
-          }
-        ];
-        return defaultParticipants;
+        return [];
       }
     } catch (error) {
       console.error("❌ Failed to fetch participants:", error);
@@ -132,32 +75,28 @@ export const fetchParticipants = createAsyncThunk(
   }
 );
 
-// Add new participant to Firestore
+// Add new participant
 export const addParticipant = createAsyncThunk(
   "participants/addParticipant",
   async (participantData: Omit<Participant, "id">, { rejectWithValue }) => {
     try {
-      console.log("➕ Adding new participant to Firestore...");
       const participantsCollection = collection(firestore, "participants");
 
-      // Clean up undefined values
       const cleanParticipantData = Object.fromEntries(
         Object.entries(participantData).filter(
-          ([_, value]) => value !== undefined
+          ([, value]) => value !== undefined
         )
       );
 
-      const newParticipant = {
+      const newParticipant: Omit<Participant, "id"> = {
         ...cleanParticipantData,
+        status: "pending",
         joinDate: new Date().toISOString().split("T")[0],
-        lastActivity: new Date().toISOString().split("T")[0]
+        lastActivity: new Date().toISOString().split("T")[0],
       };
 
       const docRef = await addDoc(participantsCollection, newParticipant);
-      const addedParticipant = { ...newParticipant, id: docRef.id };
-
-      console.log("✅ Participant added successfully:", addedParticipant);
-      return addedParticipant;
+      return { ...newParticipant, id: docRef.id };
     } catch (error) {
       console.error("❌ Failed to add participant:", error);
       return rejectWithValue("فشل في إضافة المشترك");
@@ -165,22 +104,16 @@ export const addParticipant = createAsyncThunk(
   }
 );
 
-// Update participant in Firestore
+// Update participant
 export const updateParticipant = createAsyncThunk(
   "participants/updateParticipant",
   async (
-    {
-      id,
-      participantData
-    }: { id: string; participantData: Partial<Participant> },
+    { id, participantData }: { id: string; participantData: Partial<Participant> },
     { rejectWithValue }
   ) => {
     try {
-      console.log("🔄 Updating participant in Firestore:", id);
       const participantDoc = doc(firestore, "participants", id);
       await updateDoc(participantDoc, participantData);
-
-      console.log("✅ Participant updated successfully");
       return { id, ...participantData };
     } catch (error) {
       console.error("❌ Failed to update participant:", error);
@@ -189,16 +122,13 @@ export const updateParticipant = createAsyncThunk(
   }
 );
 
-// Delete participant from Firestore
+// Delete participant
 export const deleteParticipant = createAsyncThunk(
   "participants/deleteParticipant",
   async (id: string, { rejectWithValue }) => {
     try {
-      console.log("🗑️ Deleting participant from Firestore:", id);
       const participantDoc = doc(firestore, "participants", id);
       await deleteDoc(participantDoc);
-
-      console.log("✅ Participant deleted successfully");
       return id;
     } catch (error) {
       console.error("❌ Failed to delete participant:", error);
@@ -207,19 +137,16 @@ export const deleteParticipant = createAsyncThunk(
   }
 );
 
-// Update participant status in Firestore
+// Update participant status
 export const updateParticipantStatus = createAsyncThunk(
   "participants/updateParticipantStatus",
   async (
-    { id, status }: { id: string; status: "active" | "inactive" },
+    { id, status }: { id: string; status: "pending" | "accepted" | "rejected" },
     { rejectWithValue }
   ) => {
     try {
-      console.log("🔄 Updating participant status in Firestore:", id);
       const participantDoc = doc(firestore, "participants", id);
       await updateDoc(participantDoc, { status });
-
-      console.log("✅ Participant status updated successfully");
       return { id, status };
     } catch (error) {
       console.error("❌ Failed to update participant status:", error);
@@ -228,17 +155,21 @@ export const updateParticipantStatus = createAsyncThunk(
   }
 );
 
+// ==================== Slice ====================
 const participantsSlice = createSlice({
   name: "participants",
   initialState,
   reducers: {
     clearError: (state) => {
       state.error = null;
-    }
+    },
+    setParticipants: (state, action: PayloadAction<Participant[]>) => {
+      state.participants = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch participants
+      // Fetch
       .addCase(fetchParticipants.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -251,75 +182,44 @@ const participantsSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Add participant
-      .addCase(addParticipant.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // Add
       .addCase(addParticipant.fulfilled, (state, action) => {
         state.loading = false;
         state.participants.unshift(action.payload);
       })
-      .addCase(addParticipant.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Update participant
-      .addCase(updateParticipant.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // Update
       .addCase(updateParticipant.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.participants.findIndex(
-          (participant) => participant.id === action.payload.id
+          (p) => p.id === action.payload.id
         );
         if (index !== -1) {
           state.participants[index] = {
             ...state.participants[index],
-            ...action.payload
+            ...action.payload,
           };
         }
       })
-      .addCase(updateParticipant.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Delete participant
-      .addCase(deleteParticipant.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // Delete
       .addCase(deleteParticipant.fulfilled, (state, action) => {
         state.loading = false;
         state.participants = state.participants.filter(
-          (participant) => participant.id !== action.payload
+          (p) => p.id !== action.payload
         );
       })
-      .addCase(deleteParticipant.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Update participant status
-      .addCase(updateParticipantStatus.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      // Update Status
       .addCase(updateParticipantStatus.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.participants.findIndex(
-          (participant) => participant.id === action.payload.id
+          (p) => p.id === action.payload.id
         );
         if (index !== -1) {
-          state.participants[index].status = action.payload.status;
+          state.participants[index].status =
+            action.payload.status as "pending" | "accepted" | "rejected";
         }
-      })
-      .addCase(updateParticipantStatus.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
       });
-  }
+  },
 });
 
-export const { clearError } = participantsSlice.actions;
+export const { clearError, setParticipants } = participantsSlice.actions;
 export default participantsSlice.reducer;

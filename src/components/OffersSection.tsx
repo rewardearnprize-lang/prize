@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOffers, type Offer } from "@/store/slices/offersSlice";
+import OfferParticipationModal from "@/components/OfferParticipationModal";
 
 const OffersSection = () => {
   const { t } = useTranslation();
@@ -14,14 +15,17 @@ const OffersSection = () => {
   const dispatch = useAppDispatch();
   const { offers, loading } = useAppSelector((state) => state.offers);
 
+  const [selectedOffer, setSelectedOffer] = useState<{ id: string; title: string; offerurl: string } | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
   useEffect(() => {
     dispatch(fetchOffers());
   }, [dispatch]);
 
   const getDifficultyColor = (points: number) => {
-    if (points <= 20) return "bg-green-500"; // سهل
-    if (points <= 50) return "bg-yellow-500"; // متوسط
-    return "bg-red-500"; // صعب
+    if (points <= 20) return "bg-green-500";
+    if (points <= 50) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   const getAvailabilityStatus = (offer: Offer) => {
@@ -40,18 +44,8 @@ const OffersSection = () => {
       });
       return;
     }
-
-    toast({
-      title: t("toast.redirecting.title"),
-      description: t("toast.redirecting.desc"),
-    });
-
-    setTimeout(() => {
-      toast({
-        title: t("toast.offerOpened.title"),
-        description: t("toast.offerOpened.desc"),
-      });
-    }, 1000);
+    setSelectedOffer({ id: offer.id, title: offer.title, offerurl: offer.offerurl || "" });
+    setShowModal(true);
   };
 
   if (loading) {
@@ -84,19 +78,16 @@ const OffersSection = () => {
             return (
               <Card
                 key={offer.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 flex flex-col items-center p-6" // Added flex, items-center, p-6
+                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 flex flex-col items-center p-6"
               >
-                {offer.imageUrl && (
-                  <div className="mb-4">
-                    <img
-                      src={offer.imageUrl}
-                      alt={offer.title}
-                      className="rounded-full w-24 h-24 object-cover border-4 border-purple-500 shadow-lg" // Circular, centered, border, shadow
-                    />
+                {offer.iconText && (
+                  <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
+                    {offer.iconText}
                   </div>
                 )}
-                <CardHeader className="text-center p-0 mb-4"> {/* Centered text */}
-                  <div className="flex items-center justify-center mb-2"> {/* Centered badges */}
+
+                <CardHeader className="text-center p-0 mb-4">
+                  <div className="flex items-center justify-center mb-2">
                     <Badge className={`${getDifficultyColor(offer.points)} text-white mx-1`}>
                       {offer.points <= 20 ? "سهل" : offer.points <= 50 ? "متوسط" : "صعب"}
                     </Badge>
@@ -135,6 +126,16 @@ const OffersSection = () => {
             );
           })}
         </div>
+      )}
+
+      {selectedOffer && (
+        <OfferParticipationModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          offerId={selectedOffer.id}
+          offerTitle={selectedOffer.title}
+          offerLink={selectedOffer.offerurl}
+        />
       )}
     </div>
   );

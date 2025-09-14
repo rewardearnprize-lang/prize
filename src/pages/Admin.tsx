@@ -30,6 +30,10 @@ import ProofOfDrawsManagement from "@/components/admin/ProofOfDrawsManagement";
 import ProofOfDrawsTest from "@/components/admin/ProofOfDrawsTest";
 import MainPageDataManagement from "@/components/admin/MainPageDataManagement";
 import MainPageDataTest from "@/components/admin/MainPageDataTest";
+import AdminParticipationList from "@/components/admin/AdminParticipationList";
+import AdminParticipateOffer from "@/components/admin/AdminParticipateOfer";
+import SocialMediaModal from "@/components/SocialMediaModal";
+import SocialMediaAdmin from "@/components/admin/SocialMedia";
 
 const Admin = () => {
   const { t } = useTranslation();
@@ -72,6 +76,24 @@ const Admin = () => {
               <BarChart3 className="w-4 h-4 mr-2" />
               الإحصائيات
             </TabsTrigger>
+
+           <TabsTrigger value="hamas">
+  <Users className="w-4 h-4 mr-2" />
+  المشتركون
+</TabsTrigger>
+
+           <TabsTrigger value="ofer">
+  <Users className="w-4 h-4 mr-2" />
+المشتركون في العروض
+</TabsTrigger>
+
+           <TabsTrigger value="social">
+  <Users className="w-4 h-4 mr-2" />
+Social Media
+</TabsTrigger>
+
+
+
             <TabsTrigger
               value="offers"
               className="data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-white/10 rounded-lg"
@@ -79,13 +101,7 @@ const Admin = () => {
               <Gift className="w-4 h-4 mr-2" />
               إدارة العروض
             </TabsTrigger>
-            <TabsTrigger
-              value="participants"
-              className="data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-white/10 rounded-lg"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              المشتركون
-            </TabsTrigger>
+
             <TabsTrigger
               value="draws"
               className="data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-white/10 rounded-lg"
@@ -179,6 +195,9 @@ const Admin = () => {
             </TabsTrigger>
           </TabsList>
 
+          <div className="h-20">
+
+          </div>
           <TabsContent value="dashboard" className="space-y-6">
             <DashboardStats />
           </TabsContent>
@@ -242,6 +261,19 @@ const Admin = () => {
           <TabsContent value="main-page-data-test" className="space-y-6">
             <MainPageDataTest />
           </TabsContent>
+
+          <TabsContent value="hamas" className="space-y-6">
+  <AdminParticipationList />
+</TabsContent>
+
+<TabsContent value="ofer" className="space-y-6">
+  <AdminParticipateOffer />
+</TabsContent>
+
+<TabsContent value="social" className="space-y-6">
+  <SocialMediaAdmin />
+</TabsContent>
+
         </Tabs>
       </div>
     </div>

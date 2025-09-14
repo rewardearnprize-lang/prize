@@ -19,7 +19,7 @@ const LanguageToggle = ({ onLanguageChange }: LanguageToggleProps) => {
       onLanguageChange(savedLang);
       document.documentElement.setAttribute('dir', savedLang === 'ar' ? 'rtl' : 'ltr');
     } else {
-      // تحديد الاتجاه الافتراضي للصفحة
+      
       document.documentElement.setAttribute('dir', 'ltr');
     }
   }, [onLanguageChange]);
@@ -32,16 +32,7 @@ const LanguageToggle = ({ onLanguageChange }: LanguageToggleProps) => {
     document.documentElement.setAttribute('dir', newLang === 'ar' ? 'rtl' : 'ltr');
   };
 
-  return (
-    <Button
-      variant="outline"
-      onClick={toggleLanguage}
-      className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 text-white"
-    >
-      <Globe className="h-4 w-4 mr-2" />
-      {currentLang === 'ar' ? 'English' : 'العربية'}
-    </Button>
-  );
+
 };
 
 export default LanguageToggle;
