@@ -29,6 +29,7 @@ export interface Draw {
   createdAt: string;
   updatedAt: string;
   offerUrl?: string;
+  offerId?: string;
 }
 
 interface DrawsState {

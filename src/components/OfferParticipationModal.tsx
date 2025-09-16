@@ -1,4 +1,3 @@
-// src/components/OfferParticipationModal.tsx
 import { useState } from "react";
 import {
   Dialog,
@@ -18,6 +17,7 @@ interface OfferParticipationModalProps {
   offerId: string;
   offerTitle: string;
   offerLink: string;
+  participationType: "email" | "id";
 }
 
 const OfferParticipationModal = ({
@@ -25,13 +25,12 @@ const OfferParticipationModal = ({
   onClose,
   offerId,
   offerTitle,
-  offerLink
+  offerLink,
+  participationType,
 }: OfferParticipationModalProps) => {
-  const [email, setEmail] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-
-  console.log("Offer link received:", offerLink);
 
   const normalizeUrl = (url: string) => {
     if (!/^https?:\/\//i.test(url)) {
@@ -41,23 +40,29 @@ const OfferParticipationModal = ({
   };
 
   const handleSubmit = async () => {
-    if (!email) {
-      return toast({ title: "ادخل البريد الإلكتروني", variant: "destructive" });
+    if (!inputValue) {
+      return toast({
+        title: `Please enter your ${participationType === "email" ? "Email" : "ID"}`,
+        variant: "destructive",
+      });
     }
 
     if (!offerLink) {
-      return toast({ title: "لا يوجد رابط متاح لهذا العرض", variant: "destructive" });
+      return toast({ title: "This offer has no valid link", variant: "destructive" });
     }
 
     const finalLink = normalizeUrl(offerLink);
-
     window.open(finalLink, "_blank");
 
     setLoading(true);
     try {
-      const participantRef = doc(firestore, "participants", email + "_" + offerId);
+      const participantRef = doc(
+        firestore,
+        "participants",
+        inputValue + "_" + offerId
+      );
       await setDoc(participantRef, {
-        email,
+        [participationType]: inputValue,
         offerId,
         offerTitle,
         offerurl: finalLink,
@@ -65,13 +70,12 @@ const OfferParticipationModal = ({
         timestamp: serverTimestamp(),
       });
 
-      toast({ title: "تم التسجيل بنجاح", variant: "default" });
-
+      toast({ title: "Participation submitted successfully 🎉", variant: "default" });
       onClose();
-      setEmail("");
+      setInputValue("");
     } catch (error) {
       console.error(error);
-      toast({ title: "حدث خطأ", variant: "destructive" });
+      toast({ title: "Something went wrong", variant: "destructive" });
     }
     setLoading(false);
   };
@@ -81,29 +85,37 @@ const OfferParticipationModal = ({
       open={isOpen}
       onOpenChange={() => {
         onClose();
-        setEmail("");
+        setInputValue("");
       }}
     >
-      <DialogContent className="bg-gray-900 border-gray-700">
+      <DialogContent className="bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 shadow-2xl rounded-2xl text-white transform transition-all duration-300 ease-in-out scale-95 hover:scale-100">
         <DialogHeader>
-          <DialogTitle>شارك في العرض: {offerTitle}</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+            Join Offer: {offerTitle}
+          </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 mt-4">
+
+        <div className="space-y-5 mt-4">
           <Input
-            type="email"
-            placeholder="ادخل بريدك الإلكتروني"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-gray-800 border-gray-600 text-white"
+            type={participationType === "email" ? "email" : "text"}
+            placeholder={participationType === "email" ? "Enter your Email" : "Enter your ID"}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-400 rounded-lg transition-all"
           />
+
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-green-500 hover:bg-green-600"
+            className="w-full py-3 rounded-lg bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold shadow-lg hover:opacity-90 transition-all transform hover:scale-105"
           >
-            {loading ? "جارٍ الحفظ..." : "إرسال"}
+            {loading ? "Saving..." : "Submit"}
           </Button>
         </div>
+
+        <p className="text-xs text-gray-400 text-center mt-4 animate-pulse">
+          Complete the step and wait for the results 
+        </p>
       </DialogContent>
     </Dialog>
   );

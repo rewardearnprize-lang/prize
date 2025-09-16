@@ -35,7 +35,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDraws } from "@/store/slices/drawsSlice";
 import type { Draw } from "@/store/slices/drawsSlice";
 
-// 🟢 Firebase imports
 import { firestore } from "@/lib/firebase";
 import {
   doc,
@@ -76,62 +75,72 @@ const Index = () => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-  useEffect(() => {
-    const participantsCol = collection(firestore, "participants");
-    const unsub = onSnapshot(participantsCol, (snapshot) => {
+// داخل useEffect الخاص بـ onSnapshot
+
+useEffect(() => {
+  const participantsCol = collection(firestore, "participants");
+  const unsub = onSnapshot(
+    participantsCol,
+    (snapshot) => {
       const counts: Record<string, number> = {};
       snapshot.docs.forEach((d) => {
         const data = d.data() as any;
-        const pid = data.prizeId || data.prize || "__no_prize__";
-        counts[pid] = (counts[pid] || 0) + 1;
+        if (data.verified === true) {
+          // 🔴 التعديل هنا: استخدم offerId للعد
+          const pid = data.offerId || data.prizeId || "__no_prize__";
+          counts[pid] = (counts[pid] || 0) + 1;
+        }
       });
       setParticipantsCounts(counts);
-    }, (err) => {
+    },
+    (err) => {
       console.error("participants onSnapshot error:", err);
-    });
+    }
+  );
 
-    return () => unsub();
-  }, []);
-
+  return () => unsub();
+}, []);
   useEffect(() => {
     const handleParticipationSuccess = async () => {
       if (success === "true" && prizeId) {
         const finalEmail = email || localStorage.getItem("currentUserEmail") || "";
 
-        if (finalEmail) {
-          localStorage.setItem("currentUserEmail", finalEmail);
+   if (finalEmail) {
+  localStorage.setItem("currentUserEmail", finalEmail);
 
-          try {
-            const prizeRef = doc(firestore, "draws", prizeId);
-            const prizeSnap = await getDoc(prizeRef);
+  try {
+    const prizeRef = doc(firestore, "draws", prizeId);
+    const prizeSnap = await getDoc(prizeRef);
 
-            if (prizeSnap.exists()) {
-              const prizeData = prizeSnap.data();
-              const participants: string[] = prizeData?.participants || [];
+    if (prizeSnap.exists()) {
+      const prizeData = prizeSnap.data() as Draw; // تحويل النوع إلى Draw
+      const participants: string[] = prizeData?.participants || [];
 
-              if (!participants.includes(finalEmail)) {
-                await updateDoc(prizeRef, {
-                  participants: arrayUnion(finalEmail),
-                });
-              }
-            }
+      if (!participants.includes(finalEmail)) {
+        await updateDoc(prizeRef, {
+          participants: arrayUnion(finalEmail),
+        });
+      }
 
-            const participantRef = doc(firestore, "participants", finalEmail);
-            await setDoc(
-              participantRef,
-              {
-                email: finalEmail,
-                prize: prizeName || "",
-                prizeId: prizeId,
-                status: "completed",
-                timestamp: serverTimestamp(),
-              },
-              { merge: true }
-            );
-          } catch (error) {
-            console.error("❌ Firebase Error:", error);
-          }
-        }
+      // ✨ حفظ مشاركة المستخدم في مجموعة participants
+      const participantRef = doc(firestore, "participants", finalEmail);
+      await setDoc(
+        participantRef,
+        {
+          email: finalEmail,
+          prize: prizeName || "",
+          prizeId: prizeId, // الربط مع المستند الأصلي
+          offerId: prizeData.offerId || prizeId, // ✨ إضافة offerId
+          status: "completed",
+          timestamp: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+  } catch (error) {
+    console.error("❌ Firebase Error:", error);
+  }
+}
 
         setParticipantEmail(finalEmail);
         setShowSuccessModal(true);
@@ -147,20 +156,20 @@ const Index = () => {
     handleParticipationSuccess();
   }, [success, prizeId, prizeName, email]);
 
-  const handlePrizeClick = (draw: Draw) => {
-    const max = draw.maxParticipants || 0;
-    const liveCount = participantsCounts[draw.id];
-    const participantsCount = typeof liveCount === "number" ? liveCount : (draw.participants?.length || 0);
+const handlePrizeClick = (draw: Draw) => {
+  const max = draw.maxParticipants || 0;
+  // 🔴 التعديل هنا: استخدم draw.offerId لجلب العدد
+  const liveCount = participantsCounts[draw.offerId || draw.id];
+  const participantsCount = typeof liveCount === "number" ? liveCount : 0;
 
-    if (max > 0 && participantsCount >= max) {
-      toast({
-        title: "السحب مكتمل",
-        description: "لقد اكتمل العدد المطلوب لهذا السحب",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  if (max > 0 && participantsCount >= max) {
+    toast({
+      title: "السحب مكتمل",
+      description: "لقد اكتمل العدد المطلوب لهذا السحب",
+      variant: "destructive",
+    });
+    return;
+  }
     setSelectedPrize({
       ...draw,
       prizeValue: Number(draw.prizeValue) || 0,
@@ -203,7 +212,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <Header onLanguageChange={changeLanguage} />
 
- {/* Hero Section */}
+      {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative z-10 container mx-auto px-4 py-16">
@@ -296,7 +305,7 @@ const Index = () => {
                   const participantsCount =
                     typeof participantsCounts[draw.id] === "number"
                       ? participantsCounts[draw.id]
-                      : (draw.participants?.length || 0);
+                      : 0;
 
                   const max = draw.maxParticipants || 0;
                   const remaining = Math.max(max - participantsCount, 0);
@@ -315,8 +324,8 @@ const Index = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          <div className="flex items-center justify-between text-gray-300">
-                            <span>{t("prizes.participantsRemaining")}:</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-300">Remaining slots:</span>
                             <Badge variant="secondary">{remaining}</Badge>
                           </div>
 
@@ -324,7 +333,11 @@ const Index = () => {
                             <div
                               className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                               style={{
-                                width: `${(participantsCount / (max || 1)) * 100}%`,
+                                width: `${
+                                  max > 0
+                                    ? ((participantsCount) / max) * 100
+                                    : 0
+                                }%`,
                               }}
                             ></div>
                           </div>
@@ -356,35 +369,35 @@ const Index = () => {
 
       <SocialMediaSection />
       <div className="mt-12 text-center">
-  <Card className="max-w-2xl mx-auto bg-gradient-to-r from-purple-500/20 to-purple-500/20 border-purple-500/30">
-    <CardContent className="p-6">
-      <h3 className="text-2xl font-bold text-white mb-3">How the System Works?</h3>
-      <div className="grid md:grid-cols-3 gap-4 text-center">
-        <div className="space-y-2">
-          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-white font-bold">1</span>
-          </div>
-          <p className="text-white font-medium">Choose an Offer</p>
-          <p className="text-gray-300 text-sm">Select from the available offers</p>
-        </div>
-        <div className="space-y-2">
-          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-white font-bold">2</span>
-          </div>
-          <p className="text-white font-medium">Complete Tasks</p>
-          <p className="text-gray-300 text-sm">Follow the instructions and finish the tasks</p>
-        </div>
-        <div className="space-y-2">
-          <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-white font-bold">3</span>
-          </div>
-          <p className="text-white font-medium">Earn Points</p>
-          <p className="text-gray-300 text-sm">Get points and enter the draw</p>
-        </div>
+        <Card className="max-w-2xl mx-auto bg-gradient-to-r from-purple-500/20 to-purple-500/20 border-purple-500/30">
+          <CardContent className="p-6">
+            <h3 className="text-2xl font-bold text-white mb-3">How the System Works?</h3>
+            <div className="grid md:grid-cols-3 gap-4 text-center">
+              <div className="space-y-2">
+                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-white font-bold">1</span>
+                </div>
+                <p className="text-white font-medium">Choose an Offer</p>
+                <p className="text-gray-300 text-sm">Select from the available offers</p>
+              </div>
+              <div className="space-y-2">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-white font-bold">2</span>
+                </div>
+                <p className="text-white font-medium">Complete Tasks</p>
+                <p className="text-gray-300 text-sm">Follow the instructions and finish the tasks</p>
+              </div>
+              <div className="space-y-2">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-white font-bold">3</span>
+                </div>
+                <p className="text-white font-medium">Earn Points</p>
+                <p className="text-gray-300 text-sm">Get points and enter the draw</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </CardContent>
-  </Card>
-</div>
 
       <OffersSection />
 

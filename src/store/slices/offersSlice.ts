@@ -17,7 +17,7 @@ export interface Offer {
   id: string;
   title: string;
   description: string;
-  points: number; // الآن number
+  points: number;
   category: string;
   imageUrl: string;
   link?: string;
@@ -25,6 +25,7 @@ export interface Offer {
   status: "active" | "inactive";
   completedCount: number;
   createdDate: string;
+  participationType: "email" | "id"; // ✅ لازم يكون دايمًا موجود
 }
 
 interface OffersState {
@@ -70,6 +71,7 @@ export const fetchOffers = createAsyncThunk(
             imageUrl: data.imageUrl ?? "",
             offerurl: data.offerurl ?? "",
             iconText: data.iconText ?? "",
+            participationType: data.participationType === "id" ? "id" : "email", // ✅ هنا
           };
         });
         return offersArray;
@@ -87,6 +89,7 @@ export const fetchOffers = createAsyncThunk(
             imageUrl: "/images/telegram.png",
             offerurl: "",
             iconText: "",
+            participationType: "email", // ✅ default
           },
           {
             id: "default-2",
@@ -100,6 +103,7 @@ export const fetchOffers = createAsyncThunk(
             imageUrl: "/images/facebook.png",
             offerurl: "",
             iconText: "",
+            participationType: "email", // ✅ default
           },
         ];
       }
@@ -130,6 +134,7 @@ export const addOffer = createAsyncThunk(
         imageUrl,
         createdDate: new Date().toISOString(),
         completedCount: 0,
+        participationType: offerData.participationType || "email", // ✅ لازم يتسجل
       };
 
       const offersCollection = collection(firestore, "offers");
@@ -158,6 +163,10 @@ export const updateOffer = createAsyncThunk(
         const imageUrl = await uploadImage(offerData.imageFile);
         updatedData.imageUrl = imageUrl;
         delete updatedData.imageFile;
+      }
+
+      if (!updatedData.participationType) {
+        updatedData.participationType = "email"; // ✅ default
       }
 
       const offerDoc = doc(firestore, "offers", id);
@@ -218,14 +227,13 @@ const offersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-.addCase(fetchOffers.fulfilled, (state, action) => {
-  state.loading = false;
-  state.offers = action.payload.map((offer) => ({
-    ...offer,
-    status: offer.status === "active" ? "active" : "inactive",
-  }));
-})
-
+      .addCase(fetchOffers.fulfilled, (state, action) => {
+        state.loading = false;
+        state.offers = action.payload.map((offer) => ({
+          ...offer,
+          participationType: offer.participationType || "email", // ✅ تأكيد
+        }));
+      })
       .addCase(fetchOffers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

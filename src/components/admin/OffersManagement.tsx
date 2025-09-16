@@ -31,13 +31,24 @@ const OffersManagement = () => {
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [newOffer, setNewOffer] = useState({
+
+  // ✅ State مضبوط
+  const [newOffer, setNewOffer] = useState<{
+    title: string;
+    description: string;
+    points: number;
+    category: string;
+    offerurl: string;
+    iconText: string;
+    participationType: "id" | "email";
+  }>({
     title: "",
     description: "",
     points: 0,
     category: "social",
     offerurl: "",
-    iconText: "🎁", // الأيقونة كنص افتراضي
+    iconText: "🎁",
+    participationType: "email",
   });
 
   useEffect(() => {
@@ -59,6 +70,10 @@ const OffersManagement = () => {
     return /^https?:\/\//i.test(url) ? url : "https://" + url;
   };
 
+  const normalizeParticipationType = (value: string | undefined): "email" | "id" => {
+    return value === "id" ? "id" : "email";
+  };
+
   const handleAddOffer = async () => {
     if (!newOffer.title || !newOffer.description || !newOffer.offerurl) {
       toast({
@@ -74,9 +89,10 @@ const OffersManagement = () => {
     const result = await dispatch(
       addOffer({
         ...newOffer,
+        participationType: normalizeParticipationType(newOffer.participationType),
         offerurl: finalLink,
         status: "active",
-        imageUrl: ""
+        imageUrl: "",
       })
     );
 
@@ -88,6 +104,7 @@ const OffersManagement = () => {
         category: "social",
         offerurl: "",
         iconText: "🎁",
+        participationType: "email",
       });
       setShowAddDialog(false);
       toast({
@@ -99,13 +116,16 @@ const OffersManagement = () => {
 
   const handleEditOfferSave = async () => {
     if (!editingOffer) return;
-
     const finalLink = normalizeUrl(editingOffer.offerurl || "");
 
     const result = await dispatch(
       updateOffer({
         id: editingOffer.id,
-        offerData: { ...editingOffer, offerurl: finalLink },
+        offerData: {
+          ...editingOffer,
+          participationType: normalizeParticipationType(editingOffer.participationType),
+          offerurl: finalLink,
+        },
       })
     );
 
@@ -134,7 +154,10 @@ const OffersManagement = () => {
   };
 
   const handleEditOffer = (offer: Offer) => {
-    setEditingOffer(offer);
+    setEditingOffer({
+      ...offer,
+      participationType: normalizeParticipationType(offer.participationType),
+    });
     setShowEditDialog(true);
   };
 
@@ -211,14 +234,28 @@ const OffersManagement = () => {
                   placeholder="أدخل أي رمز مثل 🎁"
                   onChange={(val) => setNewOffer({ ...newOffer, iconText: val })}
                 />
+                {/* نوع المشاركة */}
+                <div>
+                  <Label className="text-gray-300">نوع المشاركة</Label>
+                  <select
+                    value={newOffer.participationType}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        participationType: normalizeParticipationType(e.target.value),
+                      })
+                    }
+                    className="w-full bg-gray-800 border-gray-600 text-white rounded p-2"
+                  >
+                    <option value="email">بالبريد الإلكتروني</option>
+                    <option value="id">بـ ID</option>
+                  </select>
+                </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                     إلغاء
                   </Button>
-                  <Button
-                    onClick={handleAddOffer}
-                    className="bg-green-500 hover:bg-green-600"
-                  >
+                  <Button onClick={handleAddOffer} className="bg-green-500 hover:bg-green-600">
                     إضافة العرض
                   </Button>
                 </div>
@@ -242,9 +279,7 @@ const OffersManagement = () => {
                   <InputField
                     label="الوصف"
                     value={editingOffer.description || ""}
-                    onChange={(val) =>
-                      setEditingOffer({ ...editingOffer, description: val })
-                    }
+                    onChange={(val) => setEditingOffer({ ...editingOffer, description: val })}
                   />
                   <InputField
                     label="النقاط"
@@ -257,26 +292,37 @@ const OffersManagement = () => {
                   <InputField
                     label="الفئة"
                     value={editingOffer.category || ""}
-                    onChange={(val) =>
-                      setEditingOffer({ ...editingOffer, category: val })
-                    }
+                    onChange={(val) => setEditingOffer({ ...editingOffer, category: val })}
                   />
                   <InputField
                     label="رابط العرض"
                     type="url"
                     value={editingOffer.offerurl || ""}
-                    onChange={(val) =>
-                      setEditingOffer({ ...editingOffer, offerurl: val })
-                    }
+                    onChange={(val) => setEditingOffer({ ...editingOffer, offerurl: val })}
                   />
                   <InputField
                     label="الأيقونة"
                     value={editingOffer.iconText || ""}
                     placeholder="أدخل أي رمز مثل 🎁"
-                    onChange={(val) =>
-                      setEditingOffer({ ...editingOffer, iconText: val })
-                    }
+                    onChange={(val) => setEditingOffer({ ...editingOffer, iconText: val })}
                   />
+                  {/* نوع المشاركة */}
+                  <div>
+                    <Label className="text-gray-300">نوع المشاركة</Label>
+                    <select
+                      value={editingOffer.participationType || "email"}
+                      onChange={(e) =>
+                        setEditingOffer({
+                          ...editingOffer,
+                          participationType: normalizeParticipationType(e.target.value),
+                        })
+                      }
+                      className="w-full bg-gray-800 border-gray-600 text-white rounded p-2"
+                    >
+                      <option value="email">بالبريد الإلكتروني</option>
+                      <option value="id">بـ ID</option>
+                    </select>
+                  </div>
                   <div className="flex justify-end space-x-2">
                     <Button
                       variant="outline"
@@ -284,10 +330,7 @@ const OffersManagement = () => {
                     >
                       إلغاء
                     </Button>
-                    <Button
-                      onClick={handleEditOfferSave}
-                      className="bg-blue-500 hover:bg-blue-600"
-                    >
+                    <Button onClick={handleEditOfferSave} className="bg-blue-500 hover:bg-blue-600">
                       تحديث العرض
                     </Button>
                   </div>
@@ -333,7 +376,11 @@ const OffersManagement = () => {
                               : "border-green-500/50 text-green-400 hover:bg-green-500/20"
                           }`}
                         >
-                          {offer.status === "active" ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {offer.status === "active" ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                         <Button
                           size="sm"
@@ -354,7 +401,9 @@ const OffersManagement = () => {
                       </div>
                     </div>
 
-                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">{offer.description}</p>
+                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                      {offer.description}
+                    </p>
 
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
@@ -367,31 +416,22 @@ const OffersManagement = () => {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-400">رابط العرض:</span>
-                        <a href={offer.offerurl} target="_blank" className="text-blue-400 underline">
+                        <a
+                          href={offer.offerurl}
+                          target="_blank"
+                          className="text-blue-400 underline"
+                        >
                           {offer.offerurl}
                         </a>
                       </div>
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
-                        onClick={() => handleEditOffer(offer)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        تعديل
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/20"
-                        onClick={() => handleDeleteOffer(offer.id)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        حذف
-                      </Button>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">نوع المشاركة:</span>
+                        <span className="text-white font-medium">
+                          {normalizeParticipationType(offer.participationType) === "email"
+                            ? "بالبريد"
+                            : "بـ ID"}
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -413,7 +453,13 @@ interface InputFieldProps {
   placeholder?: string;
   onChange: (val: string) => void;
 }
-const InputField = ({ label, value, onChange, type = "text", placeholder }: InputFieldProps) => (
+const InputField = ({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: InputFieldProps) => (
   <div>
     <Label className="text-gray-300">{label}</Label>
     <Input

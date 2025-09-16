@@ -3,14 +3,17 @@ import { firestore } from "@/lib/firebase";
 import { collection, onSnapshot, orderBy, query, Timestamp, deleteDoc, doc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CheckCircle } from "lucide-react";
 
 interface Participant {
   id: string;
-  email: string;
+  email?: string;
+  userId?: string;
   offerId: string;
   offerTitle: string;
   status: string;
-  timestamp: Timestamp;
+  verified?: boolean;
+  timestamp?: Timestamp;
 }
 
 const AdminParticipateOffer = () => {
@@ -22,10 +25,19 @@ const AdminParticipateOffer = () => {
     const q = query(participantsRef, orderBy("timestamp", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: Participant[] = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<Participant, "id">),
-      }));
+      const data: Participant[] = snapshot.docs.map((docSnap) => {
+        const d = docSnap.data() as any;
+        return {
+          id: docSnap.id,
+          email: d.email,
+          userId: d.id,
+          offerId: d.offerId,
+          offerTitle: d.offerTitle, // 👈 هنا بجيب الاسم
+          status: d.status,
+          verified: d.verified || false,
+          timestamp: d.timestamp,
+        };
+      });
       setParticipants(data);
       setLoading(false);
     });
@@ -47,15 +59,34 @@ const AdminParticipateOffer = () => {
       <h2 className="text-3xl font-bold text-white mb-8">مشاركات العروض</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {participants.map((p) => (
-          <Card key={p.id} className="bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300">
+          <Card
+            key={p.id}
+            className="bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all duration-300"
+          >
             <CardHeader>
-              <CardTitle className="text-white">{p.offerTitle}</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-white">
+                {p.offerTitle}
+                {p.verified && <CheckCircle className="w-5 h-5 text-green-400" />}
+              </CardTitle>
               <CardDescription className="text-gray-300 text-sm">
                 {p.status === "completed" ? "مكتمل" : p.status}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-gray-300 text-sm space-y-2">
-              <p><strong>البريد الإلكتروني:</strong> {p.email}</p>
+              {p.email ? (
+                <p>
+                  <strong>البريد الإلكتروني:</strong> {p.email}
+                </p>
+              ) : (
+                <p>
+                  <strong>الـ ID:</strong> {p.userId}
+                </p>
+              )}
+
+              <p>
+                <strong>العرض:</strong> {p.offerTitle}
+              </p>
+
               <p>
                 <strong>التاريخ:</strong>{" "}
                 {p.timestamp?.toDate().toLocaleString("ar-EG") || "-"}

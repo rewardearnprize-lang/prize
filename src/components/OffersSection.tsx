@@ -15,7 +15,7 @@ const OffersSection = () => {
   const dispatch = useAppDispatch();
   const { offers, loading } = useAppSelector((state) => state.offers);
 
-  const [selectedOffer, setSelectedOffer] = useState<{ id: string; title: string; offerurl: string } | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ const OffersSection = () => {
       });
       return;
     }
-    setSelectedOffer({ id: offer.id, title: offer.title, offerurl: offer.offerurl || "" });
+    setSelectedOffer(offer);
     setShowModal(true);
   };
 
@@ -134,7 +134,8 @@ const OffersSection = () => {
           onClose={() => setShowModal(false)}
           offerId={selectedOffer.id}
           offerTitle={selectedOffer.title}
-          offerLink={selectedOffer.offerurl}
+          offerLink={selectedOffer.offerurl || ""}
+          participationType={selectedOffer.participationType}
         />
       )}
     </div>

@@ -66,8 +66,8 @@ const DrawControl = () => {
   const [showEditDrawDialog, setShowEditDrawDialog] = useState(false);
   const [editingDraw, setEditingDraw] = useState<Draw | null>(null);
 
-  // النموذج الجديد (جائزة واحدة)
 const [newDraw, setNewDraw] = useState({
+  id: "", 
   name: "",
   description: "",
   startDate: "",
@@ -79,7 +79,8 @@ const [newDraw, setNewDraw] = useState({
   minPoints: 0,
   minOffers: 0,
   socialMediaRequired: false,
-  offerUrl: "" // ✅ ضيف دي هنا
+  offerUrl: "",
+  offerId: "" 
 });
 
 
@@ -188,25 +189,28 @@ const drawData = {
   maxParticipants: newDraw.maxParticipants,
   prize: newDraw.prize,
   prizeValue: newDraw.prizeValue,
-  offerUrl: newDraw.offerUrl // ✅ ضيفها هنا
+  offerUrl: newDraw.offerUrl,
+  offerId: newDraw.offerId
 };
 
 
     const result = await dispatch(addDraw(drawData));
 if (addDraw.fulfilled.match(result)) {
   setNewDraw({
-    name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-    drawDate: "",
-    maxParticipants: 100,
-    prize: "",
-    prizeValue: 0,
-    minPoints: 0,
-    minOffers: 0,
-    socialMediaRequired: false,
-    offerUrl: "" // ✅ لازم تضيفها هنا
+ id: "",
+  name: "",
+  description: "",
+  startDate: "",
+  endDate: "",
+  drawDate: "",
+  maxParticipants: 100,
+  prize: "",
+  prizeValue: 0,
+  minPoints: 0,
+  minOffers: 0,
+  socialMediaRequired: false,
+  offerUrl: "",
+  offerId: "" 
   });
   setShowAddDrawDialog(false);
   toast({
@@ -287,7 +291,20 @@ return (
             <DialogHeader>
               <DialogTitle className="text-white">إضافة سحب جديد</DialogTitle>
             </DialogHeader>
+      
             <div className="space-y-4">
+              <div>
+  <Label className="text-gray-300">Offer ID</Label>
+  <Input
+    value={newDraw.offerId}
+    onChange={(e) =>
+      setNewDraw({ ...newDraw, offerId: e.target.value })
+    }
+    className="bg-gray-800 border-gray-600 text-white"
+    placeholder="مثال: offer_123"
+  />
+</div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-300">اسم السحب</Label>
@@ -546,120 +563,7 @@ return (
         </CardContent>
     </Card>
 
-    {/* سحب الفائزين */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-        <CardHeader>
-          <CardTitle className="text-white">إجراء السحب</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* اختيار السحب */}
-            <div className="space-y-4">
-              <Label className="text-gray-300">اختر السحب للسحب عليه</Label>
-              <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                  <SelectValue placeholder="اختر السحب" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {draws
-                    .filter((draw) => draw.status === "active")
-                    .map((draw) => (
-                      <SelectItem
-  key={draw.id}
-  value={draw.id}
-  className="text-white"
->
-  {draw.name} (متبقي:{" "}
-  {(draw.participants?.length || 0) - (draw.currentWinners || 0)})
-</SelectItem>
 
-                    ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex space-x-2">
-                <Button
-                  onClick={handleRandomDraw}
-                  className="bg-blue-500 hover:bg-blue-600 flex-1"
-                  disabled={!selectedDraw}
-                >
-                  <Shuffle className="w-4 h-4 mr-2" />
-                  سحب عشوائي
-                </Button>
-              </div>
-            </div>
-
-            {/* اختيار الفائز يدوياً */}
-            <div className="space-y-4">
-              <Label className="text-gray-300">أو اختر الفائز يدوياً</Label>
-              <Select value={selectedWinner} onValueChange={setSelectedWinner}>
-                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                  <SelectValue placeholder="اختر الفائز" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {participants
-                    .filter((p) => p.status === "pending")
-                    .map((participant) => (
-                      <SelectItem
-                        key={participant.id}
-                        value={participant.id}
-                        className="text-white"
-                      >
-                        {participant.name} - {participant.email}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* إثبات الفوز */}
-          {selectedWinner && (
-            <div className="space-y-4 p-4 bg-white/5 rounded-lg">
-              <h4 className="text-white font-medium">
-                إثبات الفوز للفائز:{" "}
-                {participants.find((p) => p.id === selectedWinner)?.name}
-              </h4>
-
-              <div>
-                <Label htmlFor="proofFile" className="text-gray-300">
-                  رفع إثبات السحب (صورة أو فيديو)
-                </Label>
-                <Input
-                  id="proofFile"
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="proofDescription" className="text-gray-300">
-                  وصف إثبات السحب
-                </Label>
-                <Textarea
-                  id="proofDescription"
-                  value={proofDescription}
-                  onChange={(e) => setProofDescription(e.target.value)}
-                  className="bg-gray-800 border-gray-600 text-white"
-                  placeholder="اكتب وصفاً لإثبات السحب..."
-                  rows={3}
-                />
-              </div>
-
-              <Button
-                onClick={handleConfirmWinner}
-                className="bg-green-500 hover:bg-green-600 w-full"
-                disabled={!proofFile}
-              >
-                <User className="w-4 h-4 mr-2" />
-                تأكيد الفائز وحفظ الإثبات
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
     {/* Edit Draw Dialog */}
     <Dialog open={showEditDrawDialog} onOpenChange={setShowEditDrawDialog}>

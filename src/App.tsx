@@ -10,7 +10,8 @@ import Admin from "./pages/Admin";
 import Winners from "./pages/Winners";
 import ThankYou from "./pages/ThankYou";
 import NotFound from "./pages/NotFound";
-
+import Offers from "./pages/offers";
+import OfferCompletion from "./pages/OfferCompletion";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -25,7 +26,9 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/winners" element={<Winners />} />
             <Route path="/thank-you" element={<ThankYou />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/offers" element={<Offers />} />
+            <Route path="/OfferCompletion" element={<OfferCompletion />} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
