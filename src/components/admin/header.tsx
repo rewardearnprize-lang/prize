@@ -56,17 +56,6 @@ const AdminStats = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Participants */}
-          <div>
-            <label className="block mb-1 text-white font-medium">Participants Count</label>
-            <Input
-              name="participants"
-              type="number"
-              value={form.participants}
-              onChange={handleChange}
-              placeholder="Enter total participants"
-              className="text-black placeholder-black"
-            />
-          </div>
 
           {/* Winners */}
           <div>
