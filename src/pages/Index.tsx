@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import Header from "@/components/Header";
 import OffersSection from "@/components/OffersSection";
 import SocialMediaSection from "@/components/SocialMediaSection";
 import SocialMediaModal from "@/components/SocialMediaModal";
@@ -34,7 +33,6 @@ import Footer from "@/components/Footer";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDraws } from "@/store/slices/drawsSlice";
 import type { Draw } from "@/store/slices/drawsSlice";
-
 import { firestore } from "@/lib/firebase";
 import {
   doc,
@@ -55,7 +53,15 @@ const Index = () => {
   const [showTransparencyModal, setShowTransparencyModal] = useState(false);
   const [participantEmail, setParticipantEmail] = useState("");
 
+  const [stats, setStats] = useState({
+    participants: 0,
+    winners: 0,
+    prizeValue: 0,
+    continuous: "24/7",
+  });
+
   const [participantsCounts, setParticipantsCounts] = useState<Record<string, number>>({});
+  const [totalParticipants, setTotalParticipants] = useState(0); 
 
   const { t, changeLanguage } = useTranslation();
   const { toast } = useToast();
@@ -75,72 +81,84 @@ const Index = () => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
-// داخل useEffect الخاص بـ onSnapshot
+  // siteStats snapshot
+  useEffect(() => {
+    const statsRef = doc(firestore, "siteStats", "main");
+    const unsub = onSnapshot(statsRef, (snap) => {
+      if (snap.exists()) {
+        setStats(snap.data() as any);
+      }
+    });
+    return () => unsub();
+  }, []);
 
-useEffect(() => {
-  const participantsCol = collection(firestore, "participants");
-  const unsub = onSnapshot(
-    participantsCol,
-    (snapshot) => {
-      const counts: Record<string, number> = {};
-      snapshot.docs.forEach((d) => {
-        const data = d.data() as any;
-        if (data.verified === true) {
-          // 🔴 التعديل هنا: استخدم offerId للعد
-          const pid = data.offerId || data.prizeId || "__no_prize__";
-          counts[pid] = (counts[pid] || 0) + 1;
-        }
-      });
-      setParticipantsCounts(counts);
-    },
-    (err) => {
-      console.error("participants onSnapshot error:", err);
-    }
-  );
+  // participants live snapshot
+  useEffect(() => {
+    const participantsCol = collection(firestore, "participants");
+    const unsub = onSnapshot(
+      participantsCol,
+      (snapshot) => {
+        const counts: Record<string, number> = {};
+        let total = 0;
+        snapshot.docs.forEach((d) => {
+          const data = d.data() as any;
+          if (data.verified === true) {
+            const pid = data.offerId || data.prizeId || "__no_prize__";
+            counts[pid] = (counts[pid] || 0) + 1;
+            total++;
+          }
+        });
+        setParticipantsCounts(counts);
+        setTotalParticipants(total); 
+      },
+      (err) => {
+        console.error("participants onSnapshot error:", err);
+      }
+    );
+    return () => unsub();
+  }, []);
 
-  return () => unsub();
-}, []);
   useEffect(() => {
     const handleParticipationSuccess = async () => {
       if (success === "true" && prizeId) {
         const finalEmail = email || localStorage.getItem("currentUserEmail") || "";
 
-   if (finalEmail) {
-  localStorage.setItem("currentUserEmail", finalEmail);
+        if (finalEmail) {
+          localStorage.setItem("currentUserEmail", finalEmail);
 
-  try {
-    const prizeRef = doc(firestore, "draws", prizeId);
-    const prizeSnap = await getDoc(prizeRef);
+          try {
+            const prizeRef = doc(firestore, "draws", prizeId);
+            const prizeSnap = await getDoc(prizeRef);
 
-    if (prizeSnap.exists()) {
-      const prizeData = prizeSnap.data() as Draw; // تحويل النوع إلى Draw
-      const participants: string[] = prizeData?.participants || [];
+            if (prizeSnap.exists()) {
+              const prizeData = prizeSnap.data() as Draw; 
+              const participants: string[] = prizeData?.participants || [];
 
-      if (!participants.includes(finalEmail)) {
-        await updateDoc(prizeRef, {
-          participants: arrayUnion(finalEmail),
-        });
-      }
+              if (!participants.includes(finalEmail)) {
+                await updateDoc(prizeRef, {
+                  participants: arrayUnion(finalEmail),
+                });
+              }
 
-      // ✨ حفظ مشاركة المستخدم في مجموعة participants
-      const participantRef = doc(firestore, "participants", finalEmail);
-      await setDoc(
-        participantRef,
-        {
-          email: finalEmail,
-          prize: prizeName || "",
-          prizeId: prizeId, // الربط مع المستند الأصلي
-          offerId: prizeData.offerId || prizeId, // ✨ إضافة offerId
-          status: "completed",
-          timestamp: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-  } catch (error) {
-    console.error("❌ Firebase Error:", error);
-  }
-}
+              const participantRef = doc(firestore, "participants", finalEmail);
+              await setDoc(
+                participantRef,
+                {
+                  email: finalEmail,
+                  prize: prizeName || "",
+                  prizeId: prizeId, 
+                  offerId: prizeData.offerId || prizeId, 
+                  verified: true, 
+                  status: "completed",
+                  timestamp: serverTimestamp(),
+                },
+                { merge: true }
+              );
+            }
+          } catch (error) {
+            console.error("❌ Firebase Error:", error);
+          }
+        }
 
         setParticipantEmail(finalEmail);
         setShowSuccessModal(true);
@@ -156,20 +174,19 @@ useEffect(() => {
     handleParticipationSuccess();
   }, [success, prizeId, prizeName, email]);
 
-const handlePrizeClick = (draw: Draw) => {
-  const max = draw.maxParticipants || 0;
-  // 🔴 التعديل هنا: استخدم draw.offerId لجلب العدد
-  const liveCount = participantsCounts[draw.offerId || draw.id];
-  const participantsCount = typeof liveCount === "number" ? liveCount : 0;
+  const handlePrizeClick = (draw: Draw) => {
+    const max = draw.maxParticipants || 0;
+    const liveCount = participantsCounts[draw.offerId || draw.id];
+    const participantsCount = typeof liveCount === "number" ? liveCount : 0;
 
-  if (max > 0 && participantsCount >= max) {
-    toast({
-      title: "السحب مكتمل",
-      description: "لقد اكتمل العدد المطلوب لهذا السحب",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (max > 0 && participantsCount >= max) {
+      toast({
+        title: "السحب مكتمل",
+        description: "لقد اكتمل العدد المطلوب لهذا السحب",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedPrize({
       ...draw,
       prizeValue: Number(draw.prizeValue) || 0,
@@ -210,7 +227,6 @@ const handlePrizeClick = (draw: Draw) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <Header onLanguageChange={changeLanguage} />
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">
@@ -229,31 +245,30 @@ const handlePrizeClick = (draw: Draw) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">15,847</p>
+                <p className="text-2xl font-bold">{totalParticipants}</p> 
                 <p className="text-sm text-gray-300">{t('stats.participants')}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <Gift className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">342</p>
+                <p className="text-2xl font-bold">{stats.winners}</p>
                 <p className="text-sm text-gray-300">{t('stats.winners')}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">$125K</p>
+                <p className="text-2xl font-bold">${stats.prizeValue}</p>
                 <p className="text-sm text-gray-300">{t('stats.prizeValue')}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                 <Clock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold">24/7</p>
+                <p className="text-2xl font-bold">{stats.continuous}</p>
                 <p className="text-sm text-gray-300">{t('stats.continuous')}</p>
               </div>
             </div>
 
-            {/* Transparency Button */}
             <Button 
               onClick={() => setShowTransparencyModal(true)}
               variant="outline"
-              className="border-blue-500/50 text-blue-300 hover:bg-blue-500/20 mb-8"
+              className="border-blue-500/50 bg-inherit text-blue-300 hover:bg-blue-500/20 hover:text-white mb-8"
             >
               <Shield className="w-4 h-4 mr-2" />
               {t('transparency.title')}
@@ -261,25 +276,7 @@ const handlePrizeClick = (draw: Draw) => {
           </div>
         </div>
       </div>
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative z-10 container mx-auto px-4 py-16">
-          <div className="text-center text-white">
-            <div className="inline-flex items-center bg-yellow-500/20 backdrop-blur-sm rounded-full px-6 py-2 mb-6">
-              <Trophy className="w-5 h-5 mr-2 text-yellow-400" />
-              <span className="text-yellow-300 font-semibold">
-                {t("site.subtitle")}
-              </span>
-            </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-              {t("site.title")}
-            </h1>
-          </div>
-        </div>
-      </div>
-
-     
       <div className="container mx-auto px-4">
         <UserParticipationStatus />
 
@@ -344,9 +341,10 @@ const handlePrizeClick = (draw: Draw) => {
 
                           <div className="text-center text-sm text-gray-400">
                             {draw.status === "active"
-                              ? `السحب ينتهي في ${draw.endDate || ""}`
-                              : "مغلق"}
+                              ? `Draw ends on ${draw.endDate || ""}`
+                              : "Closed"}
                           </div>
+
                         </div>
 
                         <Button
@@ -369,29 +367,31 @@ const handlePrizeClick = (draw: Draw) => {
 
       <SocialMediaSection />
       <div className="mt-12 text-center">
-        <Card className="max-w-2xl mx-auto bg-gradient-to-r from-purple-500/20 to-purple-500/20 border-purple-500/30">
-          <CardContent className="p-6">
-            <h3 className="text-2xl font-bold text-white mb-3">How the System Works?</h3>
-            <div className="grid md:grid-cols-3 gap-4 text-center">
-              <div className="space-y-2">
-                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <span className="text-white font-bold">1</span>
+        <Card className="max-w-2xl mx-auto bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border border-purple-600/40 shadow-xl">
+          <CardContent className="p-8">
+            <h3 className="text-2xl font-bold text-white mb-8">How the System Works?</h3>
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div className="space-y-3">
+                <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto shadow-md shadow-blue-500/40">
+                  <span className="text-white font-bold text-lg">1</span>
                 </div>
-                <p className="text-white font-medium">Choose an Offer</p>
+                <p className="text-white font-semibold text-lg">Choose an Offer</p>
                 <p className="text-gray-300 text-sm">Select from the available offers</p>
               </div>
-              <div className="space-y-2">
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-                  <span className="text-white font-bold">2</span>
+
+              <div className="space-y-3">
+                <div className="w-14 h-14 bg-green-600 rounded-full flex items-center justify-center mx-auto shadow-md shadow-green-500/40">
+                  <span className="text-white font-bold text-lg">2</span>
                 </div>
-                <p className="text-white font-medium">Complete Tasks</p>
+                <p className="text-white font-semibold text-lg">Complete Tasks</p>
                 <p className="text-gray-300 text-sm">Follow the instructions and finish the tasks</p>
               </div>
-              <div className="space-y-2">
-                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
-                  <span className="text-white font-bold">3</span>
+
+              <div className="space-y-3">
+                <div className="w-14 h-14 bg-purple-700 rounded-full flex items-center justify-center mx-auto shadow-md shadow-purple-500/40">
+                  <span className="text-white font-bold text-lg">3</span>
                 </div>
-                <p className="text-white font-medium">Earn Points</p>
+                <p className="text-white font-semibold text-lg">Earn Points</p>
                 <p className="text-gray-300 text-sm">Get points and enter the draw</p>
               </div>
             </div>

@@ -14,7 +14,7 @@ import { firestore } from "@/lib/firebase";
 // ---------------- Types ----------------
 export interface Draw {
   id: string;
-  name: string; // ✅統一
+  name: string; 
   description?: string;
   prize?: string;
   prizeValue?: number;
@@ -23,13 +23,14 @@ export interface Draw {
   currentWinners?: number;
   startDate?: string;
   endDate?: string;
-  status: "upcoming" | "active" | "completed" | "cancelled"; // ✅ required
+  status: "upcoming" | "active" | "completed" | "cancelled";
   participants: string[];
   winners: string[];
   createdAt: string;
   updatedAt: string;
   offerUrl?: string;
   offerId?: string;
+  participationType: "email" | "id";
 }
 
 interface DrawsState {
@@ -72,14 +73,14 @@ export const fetchDraws = createAsyncThunk(
   winners: data.winners || [],
   createdAt: data.createdAt || new Date().toISOString(),
   updatedAt: data.updatedAt || new Date().toISOString(),
-  offerUrl: data.offerUrl || "",   // ✅ أضفناها هنا
+  offerUrl: data.offerUrl || "",  
+  participationType: data.participationType || "email",
 };
 
         });
 
         return drawsArray;
       } else {
-        // Default data لو مفيش بيانات
         const defaultDraws: Draw[] = [
           {
             id: "default-1",
@@ -97,6 +98,7 @@ export const fetchDraws = createAsyncThunk(
             winners: ["participant_1"],
             createdAt: "2024-01-01",
             updatedAt: "2024-01-15",
+            participationType: "email",
           },
         ];
         return defaultDraws;
@@ -135,7 +137,8 @@ export const addDraw = createAsyncThunk(
   winners: [],
   createdAt: now,
   updatedAt: now,
-  offerUrl: drawData.offerUrl || "",   // ✅ هنا
+  offerUrl: drawData.offerUrl || "",  
+  participationType: drawData.participationType || "email",
 };
 
 

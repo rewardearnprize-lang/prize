@@ -32,7 +32,7 @@ const AdminParticipateOffer = () => {
           email: d.email,
           userId: d.id,
           offerId: d.offerId,
-          offerTitle: d.offerTitle, // 👈 هنا بجيب الاسم
+          offerTitle: d.offerTitle, 
           status: d.status,
           verified: d.verified || false,
           timestamp: d.timestamp,

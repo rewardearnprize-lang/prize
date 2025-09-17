@@ -25,7 +25,7 @@ export interface Offer {
   status: "active" | "inactive";
   completedCount: number;
   createdDate: string;
-  participationType: "email" | "id"; // ✅ لازم يكون دايمًا موجود
+  participationType: "email" | "id"; 
 }
 
 interface OffersState {
@@ -89,7 +89,7 @@ export const fetchOffers = createAsyncThunk(
             imageUrl: "/images/telegram.png",
             offerurl: "",
             iconText: "",
-            participationType: "email", // ✅ default
+            participationType: "email",
           },
           {
             id: "default-2",
@@ -103,7 +103,7 @@ export const fetchOffers = createAsyncThunk(
             imageUrl: "/images/facebook.png",
             offerurl: "",
             iconText: "",
-            participationType: "email", // ✅ default
+            participationType: "email",
           },
         ];
       }
@@ -134,7 +134,7 @@ export const addOffer = createAsyncThunk(
         imageUrl,
         createdDate: new Date().toISOString(),
         completedCount: 0,
-        participationType: offerData.participationType || "email", // ✅ لازم يتسجل
+        participationType: offerData.participationType || "email", 
       };
 
       const offersCollection = collection(firestore, "offers");
@@ -166,7 +166,7 @@ export const updateOffer = createAsyncThunk(
       }
 
       if (!updatedData.participationType) {
-        updatedData.participationType = "email"; // ✅ default
+        updatedData.participationType = "email";
       }
 
       const offerDoc = doc(firestore, "offers", id);
@@ -231,7 +231,7 @@ const offersSlice = createSlice({
         state.loading = false;
         state.offers = action.payload.map((offer) => ({
           ...offer,
-          participationType: offer.participationType || "email", // ✅ تأكيد
+          participationType: offer.participationType || "email", 
         }));
       })
       .addCase(fetchOffers.rejected, (state, action) => {

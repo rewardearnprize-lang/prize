@@ -3,10 +3,13 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Mail, ExternalLink, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { firestore } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -42,13 +45,18 @@ const OfferParticipationModal = ({
   const handleSubmit = async () => {
     if (!inputValue) {
       return toast({
-        title: `Please enter your ${participationType === "email" ? "Email" : "ID"}`,
+        title: `Please enter your ${
+          participationType === "email" ? "Email" : "ID"
+        }`,
         variant: "destructive",
       });
     }
 
     if (!offerLink) {
-      return toast({ title: "This offer has no valid link", variant: "destructive" });
+      return toast({
+        title: "This offer has no valid link",
+        variant: "destructive",
+      });
     }
 
     const finalLink = normalizeUrl(offerLink);
@@ -70,7 +78,10 @@ const OfferParticipationModal = ({
         timestamp: serverTimestamp(),
       });
 
-      toast({ title: "Participation submitted successfully 🎉", variant: "default" });
+      toast({
+        title: "Participation submitted successfully 🎉",
+        variant: "default",
+      });
       onClose();
       setInputValue("");
     } catch (error) {
@@ -88,34 +99,98 @@ const OfferParticipationModal = ({
         setInputValue("");
       }}
     >
-      <DialogContent className="bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 shadow-2xl rounded-2xl text-white transform transition-all duration-300 ease-in-out scale-95 hover:scale-100">
+      <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
-            Join Offer: {offerTitle}
+          <DialogTitle className="text-center">
+            <div className="space-y-4">
+              <div className="text-4xl">🎯</div>
+              <h2 className="text-2xl font-bold text-white">Join Offer</h2>
+              <p className="text-lg text-gray-300">{offerTitle}</p>
+              <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
+                Complete to unlock rewards
+              </Badge>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 mt-4">
-          <Input
-            type={participationType === "email" ? "email" : "text"}
-            placeholder={participationType === "email" ? "Enter your Email" : "Enter your ID"}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-green-400 rounded-lg transition-all"
-          />
+        <div className="space-y-6">
 
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold shadow-lg hover:opacity-90 transition-all transform hover:scale-105"
-          >
-            {loading ? "Saving..." : "Submit"}
-          </Button>
+
+          <div>
+            <label className="block text-white font-medium mb-2">
+              <Mail className="w-4 h-4 inline mr-2" />
+              {participationType === "email" ? "Email" : "ID"}
+            </label>
+            <Input
+              type={participationType === "email" ? "email" : "text"}
+              placeholder={
+                participationType === "email"
+                  ? "Enter your Email"
+                  : "Enter your ID"
+              }
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+              required
+            />
+          </div>
+
+          <Card className="bg-blue-500/20 border-blue-500/30">
+            <CardContent className="p-4">
+              <h4 className="text-white font-medium mb-3">
+                Participation Steps:
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    1
+                  </span>
+                  Enter your {participationType === "email" ? "Email" : "ID"}
+                </div>
+
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    2
+                  </span>
+                  Complete the required offer
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    3
+                  </span>
+                  Confirm your{" "}
+                  {participationType === "email" ? "Email" : "ID"} again
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    4
+                  </span>
+                  Wait for participation confirmation
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex space-x-3">
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              {loading ? "Saving..." : "Participate Now"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="border-white/30 text-black hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
-
-        <p className="text-xs text-gray-400 text-center mt-4 animate-pulse">
-          Complete the step and wait for the results 
-        </p>
       </DialogContent>
     </Dialog>
   );

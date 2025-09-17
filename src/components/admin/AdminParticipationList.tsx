@@ -24,7 +24,6 @@ const fetchParticipations = async () => {
       id: docSnap.id,
       ...(docSnap.data() as Participation),
     }))
-    // فلترة بحيث يظهر بس اللي عنده prize و email
     .filter((p) => p.prize && p.email);
 
   setParticipations(data);

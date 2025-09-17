@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -26,8 +26,9 @@ interface ParticipationModalProps {
     value?: string;
     maxParticipants?: number;
     offerUrl?: string;
+    participationType?: "email" | "id";
   } | null;
-  onParticipate: (email: string) => void;
+  onParticipate: (inputValue: string) => void;
 }
 
 const ParticipationModal = ({
@@ -36,12 +37,11 @@ const ParticipationModal = ({
   prize,
   onParticipate,
 }: ParticipationModalProps) => {
-  const [email, setEmail] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 حساب عدد المشاركين المتحققين (verified = true)
   const fetchJoinedCount = async () => {
     if (!prize) return;
     const q = query(
@@ -59,13 +59,12 @@ const ParticipationModal = ({
     }
   }, [isOpen, prize]);
 
-  // 🔹 تسجيل المشاركة
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !prize) {
+    if (!inputValue || !prize) {
       toast({
         title: "Error",
-        description: "Please enter your email.",
+        description: `Please enter your ${prize?.participationType || "email"}.`,
         variant: "destructive",
       });
       return;
@@ -75,24 +74,23 @@ const ParticipationModal = ({
 
     try {
       await addDoc(collection(firestore, "participants"), {
-        email,
+        [prize?.participationType || "email"]: inputValue,
         prize: prize.name,
         prizeId: prize.id,
         status: "pending",
         joinDate: new Date().toISOString(),
-        verified: false, // مش متأكد لسه
+        verified: false,
       });
 
-      // ✅ سيب التحويل لـ Index.tsx عن طريق onParticipate
-      onParticipate(email);
+      onParticipate(inputValue);
 
-      setEmail("");
+      setInputValue("");
       onClose();
 
       toast({
         title: "Participation Registered 🎉",
         description:
-          "Check your email in the verification page to confirm participation.",
+          "Check your entry on the verification page to confirm participation.",
       });
     } catch (error) {
       console.error("Error adding participation:", error);
@@ -162,18 +160,61 @@ const ParticipationModal = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-white font-medium mb-2">
-                <Mail className="w-4 h-4 inline mr-2" />
-                Email
+                {prize.participationType === "id" ? (
+                  <IdCard className="w-4 h-4 inline mr-2" />
+                ) : (
+                  <Mail className="w-4 h-4 inline mr-2" />
+                )}
+                {prize.participationType === "id" ? "ID" : "Email"}
               </label>
               <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type={prize.participationType === "id" ? "text" : "email"}
+                placeholder={
+                  prize.participationType === "id"
+                    ? "Enter your ID"
+                    : "Enter your Email"
+                }
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
                 required
               />
             </div>
+
+            <Card className="bg-blue-500/20 border-blue-500/30">
+              <CardContent className="p-4">
+                <h4 className="text-white font-medium mb-3">
+                  Participation Steps:
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      1
+                    </span>
+                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
+                  </div>
+
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      2
+                    </span>
+                    Complete the required offer
+                  </div>
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      3
+                    </span>
+                    Confirm your {prize.participationType === "id" ? "ID" : "Email"} again
+                  </div>
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      4
+                    </span>
+                    Wait for participation confirmation
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex space-x-3">
               <Button
@@ -189,7 +230,7 @@ const ParticipationModal = ({
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="border-white/30 text-white hover:bg-white/10"
+                className="border-white/30 text-black hover:bg-white/10"
               >
                 Cancel
               </Button>

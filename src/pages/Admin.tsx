@@ -34,6 +34,7 @@ import AdminParticipationList from "@/components/admin/AdminParticipationList";
 import AdminParticipateOffer from "@/components/admin/AdminParticipateOfer";
 import SocialMediaModal from "@/components/SocialMediaModal";
 import SocialMediaAdmin from "@/components/admin/SocialMedia";
+import AdminStats from "@/components/admin/header";
 
 const Admin = () => {
   const { t } = useTranslation();
@@ -76,7 +77,10 @@ const Admin = () => {
               <BarChart3 className="w-4 h-4 mr-2" />
               الإحصائيات
             </TabsTrigger>
-
+           <TabsTrigger value="header">
+  <Users className="w-4 h-4 mr-2" />
+Header
+</TabsTrigger>
            <TabsTrigger value="hamas">
   <Users className="w-4 h-4 mr-2" />
   المشتركون
@@ -272,6 +276,10 @@ Social Media
 
 <TabsContent value="social" className="space-y-6">
   <SocialMediaAdmin />
+</TabsContent>
+
+<TabsContent value="header" className="space-y-6">
+  <AdminStats />
 </TabsContent>
 
         </Tabs>
