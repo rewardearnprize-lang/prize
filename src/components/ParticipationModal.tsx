@@ -1,4 +1,3 @@
-// src/components/ParticipationModal.tsx
 import { useState, useEffect } from "react";
 import {
   Dialog,
