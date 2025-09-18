@@ -8,37 +8,30 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Shuffle,
-  Gift,
-  Plus,
-  Loader2,
-  Edit,
-  Trash2
-} from "lucide-react";
+import { Shuffle, Gift, Plus, Loader2, Edit, Trash2, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { firestore } from "@/lib/firebase";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+
 import {
   fetchDraws,
   addDraw,
   updateDraw,
   deleteDraw,
   updateDrawStatus,
-  type Draw
+  type Draw,
 } from "@/store/slices/drawsSlice";
-import {
-  fetchParticipants,
-  type Participant
-} from "@/store/slices/participantsSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Textarea } from "../ui/textarea";
 
 const DrawControl = () => {
   const { toast } = useToast();
@@ -46,14 +39,15 @@ const DrawControl = () => {
   const { draws, loading: drawsLoading, error: drawsError } = useAppSelector(
     (state) => state.draws
   );
-  const { participants, loading: participantsLoading } = useAppSelector(
-    (state) => state.participants
-  );
+
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const [selectedWinner, setSelectedWinner] = useState("");
   const [selectedDraw, setSelectedDraw] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofDescription, setProofDescription] = useState("");
+
   const [showAddDrawDialog, setShowAddDrawDialog] = useState(false);
   const [showEditDrawDialog, setShowEditDrawDialog] = useState(false);
   const [editingDraw, setEditingDraw] = useState<Draw | null>(null);
@@ -73,69 +67,79 @@ const DrawControl = () => {
     socialMediaRequired: false,
     offerUrl: "",
     offerId: "",
-    participationType: "email" as "email" | "id"
+    participationType: "email" as "email" | "id",
   });
 
   useEffect(() => {
     dispatch(fetchDraws());
-    dispatch(fetchParticipants());
   }, [dispatch]);
+
+  useEffect(() => {
+    const fetchVerifiedParticipants = async () => {
+      try {
+        setLoadingParticipants(true);
+        const q = query(
+          collection(firestore, "participants"),
+          where("verified", "==", true)
+        );
+        const snap = await getDocs(q);
+        const data = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setParticipants(data);
+      } catch (err) {
+        console.error("Error fetching participants:", err);
+      } finally {
+        setLoadingParticipants(false);
+      }
+    };
+
+    fetchVerifiedParticipants();
+  }, []);
 
   useEffect(() => {
     if (drawsError) {
       toast({
         title: "خطأ",
         description: drawsError,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   }, [drawsError, toast]);
 
-  const handleRandomDraw = () => {
-    if (!selectedDraw) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار السحب أولاً",
-        variant: "destructive"
-      });
-      return;
-    }
+const handleRandomDraw = async () => {
+  const selected = draws.find((d) => d.id === selectedDraw);
+  if (!selected) return;
 
-    const activeParticipants = participants.filter(
-      (p) => p.status === "pending"
-    );
-    if (activeParticipants.length === 0) {
-      toast({
-        title: "خطأ",
-        description: "لا يوجد مشتركين نشطين",
-        variant: "destructive"
-      });
-      return;
-    }
+  const eligible = participants.filter((p) => p.prize === selected.prize);
+  if (eligible.length === 0) {
+    return;
+  }
 
-    const randomIndex = Math.floor(Math.random() * activeParticipants.length);
-    const winner = activeParticipants[randomIndex];
-    setSelectedWinner(winner.id);
+  const randomWinner = eligible[Math.floor(Math.random() * eligible.length)];
 
-    toast({
-      title: "تم اختيار الفائز!",
-      description: `الفائز هو: ${winner.name}`
-    });
-  };
+  await updateDoc(doc(firestore, "participants", randomWinner.id), {
+    status: "accepted",
+  });
+
+  alert(`الفائز هو: ${randomWinner.email}`);
+};
+
 
   const handleConfirmWinner = async () => {
     if (!selectedWinner || !selectedDraw || !proofFile) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع البيانات المطلوبة",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     toast({
       title: "تم بنجاح!",
-      description: "تم تأكيد الفائز وحفظ البيانات"
+      description: "تم تأكيد الفائز وحفظ البيانات",
     });
 
     setSelectedWinner("");
@@ -149,7 +153,7 @@ const DrawControl = () => {
       toast({
         title: "خطأ",
         description: "يرجى ملء البيانات المطلوبة",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -166,7 +170,7 @@ const DrawControl = () => {
       prizeValue: newDraw.prizeValue,
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
-      participationType: newDraw.participationType
+      participationType: newDraw.participationType,
     };
 
     const result = await dispatch(addDraw(drawData));
@@ -186,12 +190,12 @@ const DrawControl = () => {
         socialMediaRequired: false,
         offerUrl: "",
         offerId: "",
-        participationType: "email"
+        participationType: "email",
       });
       setShowAddDrawDialog(false);
       toast({
         title: "تم إضافة السحب",
-        description: "تمت إضافة السحب الجديد بنجاح"
+        description: "تمت إضافة السحب الجديد بنجاح",
       });
     }
   };
@@ -207,7 +211,7 @@ const DrawControl = () => {
     const result = await dispatch(
       updateDraw({
         id: editingDraw.id,
-        drawData: editingDraw
+        drawData: editingDraw,
       })
     );
 
@@ -216,7 +220,7 @@ const DrawControl = () => {
       setEditingDraw(null);
       toast({
         title: "تم بنجاح",
-        description: "تم تحديث بيانات السحب"
+        description: "تم تحديث بيانات السحب",
       });
     }
   };
@@ -226,7 +230,7 @@ const DrawControl = () => {
     if (deleteDraw.fulfilled.match(result)) {
       toast({
         title: "تم الحذف",
-        description: "تم حذف السحب بنجاح"
+        description: "تم حذف السحب بنجاح",
       });
     }
   };
@@ -238,7 +242,7 @@ const DrawControl = () => {
     await dispatch(updateDrawStatus({ id, status }));
   };
 
-  if (drawsLoading || participantsLoading) {
+   if (drawsLoading || loadingParticipants) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-white" />
@@ -547,10 +551,119 @@ const DrawControl = () => {
               ))}
             </div>
           )}
+
+          
+        </CardContent>
+      </Card>
+      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <CardHeader>
+          <CardTitle className="text-white">إجراء السحب</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* اختيار السحب */}
+            <div className="space-y-4">
+              <Label className="text-gray-300">اختر السحب للسحب عليه</Label>
+              <Select value={selectedDraw} onValueChange={setSelectedDraw}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder="اختر السحب" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {draws
+                    .filter((draw) => draw.status === "active")
+                    .map((draw) => (
+                      <SelectItem
+                        key={draw.id}
+                        value={draw.id}
+                        className="text-white"
+                      >
+                        {draw.name} (الجائزة: {draw.prize})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                onClick={handleRandomDraw}
+                className="bg-blue-500 hover:bg-blue-600 w-full"
+                disabled={!selectedDraw}
+              >
+                <Shuffle className="w-4 h-4 mr-2" />
+                سحب عشوائي
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-gray-300">أو اختر الفائز يدوياً</Label>
+              <Select value={selectedWinner} onValueChange={setSelectedWinner}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder="اختر الفائز" />
+                </SelectTrigger>
+<SelectContent className="bg-gray-800 border-gray-600">
+  {participants
+    .filter((p) => p.prizeId === selectedDraw) // 👈 بدل الفلترة على prize.name
+    .map((participant) => (
+      <SelectItem
+        key={participant.id}
+        value={participant.id}
+        className="text-white"
+      >
+        {participant.email || participant.id} - {participant.prize}
+      </SelectItem>
+    ))}
+</SelectContent>
+
+              </Select>
+            </div>
+          </div>
+
+          {/* إثبات الفوز */}
+          {selectedWinner && (
+            <div className="space-y-4 p-4 bg-white/5 rounded-lg">
+              <h4 className="text-white font-medium">
+                إثبات الفوز للفائز:{" "}
+                {participants.find((p) => p.id === selectedWinner)?.email}
+              </h4>
+
+              <div>
+                <Label htmlFor="proofFile" className="text-gray-300">
+                  رفع إثبات السحب (صورة أو فيديو)
+                </Label>
+                <Input
+                  id="proofFile"
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="proofDescription" className="text-gray-300">
+                  وصف إثبات السحب
+                </Label>
+                <Textarea
+                  id="proofDescription"
+                  value={proofDescription}
+                  onChange={(e) => setProofDescription(e.target.value)}
+                  className="bg-gray-800 border-gray-600 text-white"
+                  rows={3}
+                />
+              </div>
+
+              <Button
+                onClick={handleConfirmWinner}
+                className="bg-green-500 hover:bg-green-600 w-full"
+                disabled={!proofFile}
+              >
+                <User className="w-4 h-4 mr-2" />
+                تأكيد الفائز وحفظ الإثبات
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Edit Draw Dialog */}
       <Dialog open={showEditDrawDialog} onOpenChange={setShowEditDrawDialog}>
         <DialogContent className="bg-gray-900 border-gray-700 max-w-4xl">
           <DialogHeader>
@@ -697,6 +810,7 @@ const DrawControl = () => {
           )}
         </DialogContent>
       </Dialog>
+      
     </div>
   );
 };

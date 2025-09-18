@@ -31,6 +31,7 @@ export interface Draw {
   offerUrl?: string;
   offerId?: string;
   participationType: "email" | "id";
+  currentParticipants?: number;
 }
 
 interface DrawsState {

@@ -28,6 +28,10 @@ export interface Participant {
     instagram?: string;
     tiktok?: string;
   };
+    drawId?: string;  
+  prize?: string;    
+
+  
 }
 
 interface ParticipantsState {

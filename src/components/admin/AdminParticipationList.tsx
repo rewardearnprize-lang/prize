@@ -11,7 +11,8 @@ interface Participation {
   prize: string;
   status: "pending" | "accepted" | "rejected";
   joinDate: string;
-  verified?: boolean; 
+  verified?: boolean;
+  
 }
 
 const AdminParticipationList = () => {
