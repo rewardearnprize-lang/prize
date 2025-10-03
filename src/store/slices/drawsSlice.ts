@@ -148,7 +148,7 @@ export const addDraw = createAsyncThunk(
       const docRef = await addDoc(drawsCollection, newDraw);
 
 // بعد إضافة السحب والحصول على docRef.id
-await registerOfferInFirestore(docRef.id, newDraw.prize || "جائزة");
+await registerOfferInFirestore(newOfferId, generatedPrizeId);
 
       
       return { ...newDraw, id: docRef.id };
