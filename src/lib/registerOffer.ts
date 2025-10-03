@@ -1,6 +1,6 @@
 export async function registerOfferInFirestore(offerId: string, prizeId: string) {
   try {
-    const response = await fetch("https://yourproject.vercel.app/api/add-offer", {
+    const response = await fetch("https://ogads-postback.vercel.app/api/add-offer", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
