@@ -1,4 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { registerOfferInFirestore } from "@/lib/registerOffer";
+
 import {
   collection,
   getDocs,
@@ -144,6 +146,11 @@ export const addDraw = createAsyncThunk(
 
 
       const docRef = await addDoc(drawsCollection, newDraw);
+
+// بعد إضافة السحب والحصول على docRef.id
+await registerOfferInFirestore(docRef.id, newDraw.prize || "جائزة");
+
+      
       return { ...newDraw, id: docRef.id };
     } catch (error) {
       console.error("❌ Failed to add draw:", error);
