@@ -201,14 +201,16 @@ const Index = () => {
       if (selectedPrize.offerUrl) {
         const redirectUrl = `https://prizeapp.netlify.app/?success=true&prizeId=${
           selectedPrize.id
-        }&prizeName=${encodeURIComponent(
-          selectedPrize.name
-        )}&email=${encodeURIComponent(email)}`;
+        }&prizeName=${encodeURIComponent(selectedPrize.name)}&email=${encodeURIComponent(email)}`;
 
-        window.location.href = `${selectedPrize.offerUrl}?redirect=${encodeURIComponent(
-          redirectUrl
-        )}`;
-      } else {
+  // ✨ هنا نضيف الإيميل كـ subid داخل offerUrl
+  const offerWithSubid = `${selectedPrize.offerUrl}${
+    selectedPrize.offerUrl.includes("?") ? "&" : "?"
+  }subid=${encodeURIComponent(email)}`;
+
+  // ✨ نحط redirect بعد ما ضفنا subid
+  window.location.href = `${offerWithSubid}&redirect=${encodeURIComponent(redirectUrl)}`;
+} else {
         toast({
           title: "لا يوجد لينك عرض",
           description: "من فضلك تواصل مع الإدارة",
