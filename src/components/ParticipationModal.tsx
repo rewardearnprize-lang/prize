@@ -71,9 +71,7 @@ const ParticipationModal = ({
 
     setIsSubmitting(true);
 
-    const handleParticipate = async () => {
-  if (!inputValue) return; // إذا كان الحقل فارغ، لا نفعل شيئًا
-
+  
   try {
     // توليد مفتاح جديد لكل محاولة
     const uniqueKey =
