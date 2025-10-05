@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { doc, setDoc, collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
