@@ -98,11 +98,7 @@ const ParticipationModal = ({
     setInputValue(""); // إعادة تعيين الحقل
     onClose();         // إغلاق الـ dialog
 
-    toast({
-      title: "Participation Registered 🎉",
-      description:
-        "Check your entry on the verification page to confirm participation.",
-    });
+    
   } catch (error) {
     console.error("❌ Failed to register participant:", error);
     toast({
