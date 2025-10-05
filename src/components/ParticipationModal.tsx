@@ -72,6 +72,8 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
+      const handleParticipate = async () => {
+  if (!inputValue) return;
       // توليد مفتاح فريد
 const uniqueKey =
   "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
@@ -99,6 +101,7 @@ toast({
 });
 
 console.log("✅ Participant added with key:", uniqueKey);
+      };
 
     } catch (error) {
       console.error("Error adding participation:", error);
