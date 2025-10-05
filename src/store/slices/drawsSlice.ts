@@ -122,13 +122,12 @@ export const addDraw = createAsyncThunk(
   ) => {
     try {
       const drawsCollection = collection(firestore, "draws");
-
       const now = new Date().toISOString();
 
-      // ✅ 1. إنشاء مفتاح فريد لكل عرض
-      const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      // === توليد المفتاح ===
+      const uniqueKey = generateUniqueKey();
+      console.log("[addDraw] generated key:", uniqueKey);
 
-      // ✅ 2. إنشاء كائن السحب الجديد
       const newDraw: Omit<Draw, "id"> = {
         name: drawData.name || "سحب جديد",
         description: drawData.description || "",
@@ -147,15 +146,20 @@ export const addDraw = createAsyncThunk(
         offerUrl: drawData.offerUrl || "",
         participationType: drawData.participationType || "email",
 
-        // ✅ 3. نضيف المفتاح الجديد هنا
+        // ← تأكد أن حقل key موجود في الواجهة Draw إذا كان لديك نوع ثابت
         key: uniqueKey,
       };
 
-      // ✅ 4. رفع البيانات إلى Firestore
-      const docRef = await addDoc(drawsCollection, newDraw);
+      console.log("[addDraw] newDraw object to save:", newDraw);
 
-      // ✅ 5. تسجيل العرض في Firestore عبر الـ API
-      await registerOfferInFirestore(docRef.id, uniqueKey);
+      // === رفع إلى Firestore ===
+      const docRef = await addDoc(drawsCollection, newDraw);
+      console.log("[addDraw] saved docRef.id:", docRef.id);
+
+      // === استدعاء API لتسجيل العرض عند الحاجة ===
+      // ملاحظة مهمة: تأكد أن registerOfferInFirestore يرسل اسم الحقل 'key' وليس 'prizeId'
+      const registerResult = await registerOfferInFirestore(docRef.id, uniqueKey);
+      console.log("[addDraw] registerOfferInFirestore result:", registerResult);
 
       return { ...newDraw, id: docRef.id };
     } catch (error) {
@@ -164,7 +168,6 @@ export const addDraw = createAsyncThunk(
     }
   }
 );
-
 
 // ---------------- Update draw ----------------
 export const updateDraw = createAsyncThunk(
