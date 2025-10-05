@@ -72,36 +72,34 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      const handleParticipate = async () => {
-  if (!inputValue) return;
+ 
       // توليد مفتاح فريد
-const uniqueKey =
-  "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+const handleParticipate = async () => {
+  if (!inputValue) return; // شرط بسيط لمنع إرسال فارغ
 
-await setDoc(doc(firestore, "participants", uniqueKey), {
-  [prize?.participationType || "email"]: inputValue, // البريد أو الهاتف
-  prize: prize.name,
-  prizeId: prize.id,
-  status: "pending",
-  joinDate: new Date().toISOString(),
-  verified: false,        // كما كان
-  key: uniqueKey,         // 🔹 إضافة المفتاح الفريد
-});
+  // توليد مفتاح جديد لكل محاولة
+  const uniqueKey =
+    "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-// استدعاء الدالة بعد التسجيل (كما كان)
-onParticipate(inputValue);
+  await setDoc(doc(firestore, "participants", uniqueKey), {
+    [prize?.participationType || "email"]: inputValue,
+    prize: prize.name,
+    prizeId: prize.id,
+    status: "pending",
+    joinDate: new Date().toISOString(),
+    verified: false,
+    completed: false,
+    key: uniqueKey,
+  });
 
-setInputValue("");
-onClose();
+  console.log("✅ Participant added with key:", uniqueKey);
 
-toast({
-  title: "Participation Registered 🎉",
-  description:
-    "Check your entry on the verification page to confirm participation.",
-});
+  onParticipate(inputValue);
 
-console.log("✅ Participant added with key:", uniqueKey);
-      };
+  setInputValue(""); // إعادة تعيين بعد كل مشاركة
+  onClose();         // إغلاق الـ dialog
+};
+    
 
     } catch (error) {
       console.error("Error adding participation:", error);
