@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { registerOfferInFirestore } from "@/lib/registerOffer";
-
+import { generateUserKey } from "./utils";
 import {
   collection,
   getDocs,
@@ -122,35 +122,39 @@ export const addDraw = createAsyncThunk(
   ) => {
     try {
       const drawsCollection = collection(firestore, "draws");
-
       const now = new Date().toISOString();
 
-    const newDraw: Omit<Draw, "id"> = {
-  name: drawData.name || "سحب جديد",
-  description: drawData.description || "",
-  prize: drawData.prize || "جائزة",
-  prizeValue: drawData.prizeValue || 0,
-  maxWinners: drawData.maxWinners || 1,
-  maxParticipants: drawData.maxParticipants || 0,
-  currentWinners: 0,
-  startDate: drawData.startDate || "",
-  endDate: drawData.endDate || "",
-  status: drawData.status || "active",
-  participants: [],
-  winners: [],
-  createdAt: now,
-  updatedAt: now,
-  offerUrl: drawData.offerUrl || "",  
-  participationType: drawData.participationType || "email",
-};
+      // 1️⃣ توليد مفتاح فريد
+      const key = generateUserKey();
 
+      const newDraw: Omit<Draw, "id"> = {
+        name: drawData.name || "سحب جديد",
+        description: drawData.description || "",
+        prize: drawData.prize || "جائزة",
+        prizeValue: drawData.prizeValue || 0,
+        maxWinners: drawData.maxWinners || 1,
+        maxParticipants: drawData.maxParticipants || 0,
+        currentWinners: 0,
+        startDate: drawData.startDate || "",
+        endDate: drawData.endDate || "",
+        status: drawData.status || "active",
+        participants: [],
+        winners: [],
+        createdAt: now,
+        updatedAt: now,
+        offerUrl: drawData.offerUrl || "",  
+        participationType: drawData.participationType || "email",
 
+        // 🔑 إضافة المفتاح الفريد
+        key: key,
+      };
+
+      // 2️⃣ حفظ السحب في Firestore
       const docRef = await addDoc(drawsCollection, newDraw);
 
-// بعد إضافة السحب والحصول على docRef.id
-await registerOfferInFirestore(newOfferId, generatedPrizeId);
+      // 3️⃣ تسجيل العرض في Firestore/Backend مع المفتاح
+      await registerOfferInFirestore(docRef.id, key);
 
-      
       return { ...newDraw, id: docRef.id };
     } catch (error) {
       console.error("❌ Failed to add draw:", error);
