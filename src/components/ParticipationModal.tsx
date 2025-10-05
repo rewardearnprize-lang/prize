@@ -106,7 +106,7 @@ const ParticipationModal = ({
       description: "Failed to register your participation. Please try again.",
     });
   }
-}
+
     
 
     } catch (error) {
