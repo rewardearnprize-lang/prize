@@ -72,25 +72,34 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(firestore, "participants"), {
-        [prize?.participationType || "email"]: inputValue,
-        prize: prize.name,
-        prizeId: prize.id,
-        status: "pending",
-        joinDate: new Date().toISOString(),
-        verified: false,
-      });
+      // توليد مفتاح فريد
+const uniqueKey =
+  "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-      onParticipate(inputValue);
+await addDoc(collection(firestore, "participants"), {
+  [prize?.participationType || "email"]: inputValue, // البريد أو الهاتف
+  prize: prize.name,
+  prizeId: prize.id,
+  status: "pending",
+  joinDate: new Date().toISOString(),
+  verified: false,        // كما كان
+  key: uniqueKey,         // 🔹 إضافة المفتاح الفريد
+});
 
-      setInputValue("");
-      onClose();
+// استدعاء الدالة بعد التسجيل (كما كان)
+onParticipate(inputValue);
 
-      toast({
-        title: "Participation Registered 🎉",
-        description:
-          "Check your entry on the verification page to confirm participation.",
-      });
+setInputValue("");
+onClose();
+
+toast({
+  title: "Participation Registered 🎉",
+  description:
+    "Check your entry on the verification page to confirm participation.",
+});
+
+console.log("✅ Participant added with key:", uniqueKey);
+
     } catch (error) {
       console.error("Error adding participation:", error);
       toast({
