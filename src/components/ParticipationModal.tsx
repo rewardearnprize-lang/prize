@@ -79,8 +79,8 @@ const ParticipationModal = ({
         "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
       // 🔹 حفظ البيانات في Firestore باستخدام المفتاح كمفتاح أساسي
-      await setDoc(doc(firestore, "participants", uniqueKey), {
-        [prize?.participationType || "email"]: inputValue,
+     const docRef = await addDoc(collection(firestore, "participants"), {
+  [prize?.participationType || "email"]: inputValue,
         prize: prize.name,
         prizeId: prize.id,
         status: "pending",
