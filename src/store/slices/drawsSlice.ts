@@ -78,6 +78,7 @@ export const fetchDraws = createAsyncThunk(
   updatedAt: data.updatedAt || new Date().toISOString(),
   offerUrl: data.offerUrl || "",  
   participationType: data.participationType || "email",
+           key: generateUid(),
 };
 
         });
@@ -122,12 +123,13 @@ export const addDraw = createAsyncThunk(
   ) => {
     try {
       const drawsCollection = collection(firestore, "draws");
+
       const now = new Date().toISOString();
 
-      // === توليد المفتاح ===
-      const uniqueKey = generateUniqueKey();
-      console.log("[addDraw] generated key:", uniqueKey);
+      // ✅ 1. إنشاء مفتاح فريد لكل عرض
+      const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
+      // ✅ 2. إنشاء كائن السحب الجديد
       const newDraw: Omit<Draw, "id"> = {
         name: drawData.name || "سحب جديد",
         description: drawData.description || "",
@@ -146,20 +148,15 @@ export const addDraw = createAsyncThunk(
         offerUrl: drawData.offerUrl || "",
         participationType: drawData.participationType || "email",
 
-        // ← تأكد أن حقل key موجود في الواجهة Draw إذا كان لديك نوع ثابت
+        // ✅ 3. نضيف المفتاح الجديد هنا
         key: uniqueKey,
       };
 
-      console.log("[addDraw] newDraw object to save:", newDraw);
-
-      // === رفع إلى Firestore ===
+      // ✅ 4. رفع البيانات إلى Firestore
       const docRef = await addDoc(drawsCollection, newDraw);
-      console.log("[addDraw] saved docRef.id:", docRef.id);
 
-      // === استدعاء API لتسجيل العرض عند الحاجة ===
-      // ملاحظة مهمة: تأكد أن registerOfferInFirestore يرسل اسم الحقل 'key' وليس 'prizeId'
-      const registerResult = await registerOfferInFirestore(docRef.id, uniqueKey);
-      console.log("[addDraw] registerOfferInFirestore result:", registerResult);
+      // ✅ 5. تسجيل العرض في Firestore عبر الـ API
+      await registerOfferInFirestore(docRef.id, uniqueKey);
 
       return { ...newDraw, id: docRef.id };
     } catch (error) {
@@ -168,6 +165,7 @@ export const addDraw = createAsyncThunk(
     }
   }
 );
+
 
 // ---------------- Update draw ----------------
 export const updateDraw = createAsyncThunk(
