@@ -122,11 +122,13 @@ export const addDraw = createAsyncThunk(
   ) => {
     try {
       const drawsCollection = collection(firestore, "draws");
+
       const now = new Date().toISOString();
 
-      // 1️⃣ توليد مفتاح فريد
-      const key = generateUserKey();
+      // ✅ 1. إنشاء مفتاح فريد لكل عرض
+      const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
+      // ✅ 2. إنشاء كائن السحب الجديد
       const newDraw: Omit<Draw, "id"> = {
         name: drawData.name || "سحب جديد",
         description: drawData.description || "",
@@ -142,18 +144,18 @@ export const addDraw = createAsyncThunk(
         winners: [],
         createdAt: now,
         updatedAt: now,
-        offerUrl: drawData.offerUrl || "",  
+        offerUrl: drawData.offerUrl || "",
         participationType: drawData.participationType || "email",
 
-        // 🔑 إضافة المفتاح الفريد
-        key: key,
+        // ✅ 3. نضيف المفتاح الجديد هنا
+        key: uniqueKey,
       };
 
-      // 2️⃣ حفظ السحب في Firestore
+      // ✅ 4. رفع البيانات إلى Firestore
       const docRef = await addDoc(drawsCollection, newDraw);
 
-      // 3️⃣ تسجيل العرض في Firestore/Backend مع المفتاح
-      await registerOfferInFirestore(docRef.id, key);
+      // ✅ 5. تسجيل العرض في Firestore عبر الـ API
+      await registerOfferInFirestore(docRef.id, uniqueKey);
 
       return { ...newDraw, id: docRef.id };
     } catch (error) {
@@ -162,6 +164,7 @@ export const addDraw = createAsyncThunk(
     }
   }
 );
+
 
 // ---------------- Update draw ----------------
 export const updateDraw = createAsyncThunk(
