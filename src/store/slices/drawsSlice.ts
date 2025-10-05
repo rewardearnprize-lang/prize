@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { registerOfferInFirestore } from "@/lib/registerOffer";
-import { generateUserKey } from "./utils";
+import { generateUserKey } from "utils";
 import {
   collection,
   getDocs,
