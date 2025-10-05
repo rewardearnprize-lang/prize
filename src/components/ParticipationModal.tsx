@@ -76,7 +76,7 @@ const ParticipationModal = ({
 const uniqueKey =
   "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-await addDoc(collection(firestore, "participants"), {
+await setDoc(doc(firestore, "participants", uniqueKey), {
   [prize?.participationType || "email"]: inputValue, // البريد أو الهاتف
   prize: prize.name,
   prizeId: prize.id,
