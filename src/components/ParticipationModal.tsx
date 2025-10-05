@@ -13,7 +13,7 @@ import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
-import { participationManager } from "@/utils/participationManager";
+import { participationManager } from "@/lib/participationManager";
 
 interface ParticipationModalProps {
   isOpen: boolean;
