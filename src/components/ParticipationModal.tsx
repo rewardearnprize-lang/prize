@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, setDoc, doc, getDocs, query, where } from "firebase/firestore";
+import { collection, setDoc, doc, getDocs, query, where, getDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
@@ -40,6 +40,13 @@ const ParticipationModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
+  
+  // 🔹 استخدام useRef لتخزين البيانات بدون إعادة render
+  const submissionRef = useRef({
+    isSubmitting: false,
+    currentPrize: null as typeof prize | null,
+    currentInput: ""
+  });
 
   // 🔹 دالة محسنة لجلب عدد المشاركين
   const fetchJoinedCount = useCallback(async () => {
@@ -63,6 +70,12 @@ const ParticipationModal = ({
       fetchJoinedCount();
       setInputValue("");
       setIsSubmitting(false);
+      // 🔹 تحديث الـ ref مع البيانات الحالية
+      submissionRef.current = {
+        isSubmitting: false,
+        currentPrize: prize,
+        currentInput: ""
+      };
     }
   }, [isOpen, prize, fetchJoinedCount]);
 
@@ -73,72 +86,104 @@ const ParticipationModal = ({
     return `key_${timestamp}_${random}`;
   }, []);
 
-  // 🔹 دالة محسنة للإرسال
+  // 🔹 دالة للتحقق من الحفظ
+  const verifyDocumentSave = async (key: string) => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500)); // انتظار بسيط
+      const docRef = doc(firestore, "participants", key);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("✅ Document verification SUCCESS:", { key, data });
+        return true;
+      } else {
+        console.log("❌ Document verification FAILED: Document not found", key);
+        return false;
+      }
+    } catch (error) {
+      console.error("❌ Document verification ERROR:", error);
+      return false;
+    }
+  };
+
+  // 🔹 دالة محسنة للإرسال - معزولة تماماً
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!inputValue.trim() || !prize) {
+    // 🔹 استخدام الـ ref للتحقق من الحالة بدلاً من state
+    if (submissionRef.current.isSubmitting) {
+      console.log("⏳ Submission already in progress, skipping...");
+      return;
+    }
+
+    const currentInput = inputValue.trim();
+    const currentPrize = prize;
+
+    if (!currentInput || !currentPrize) {
       toast({
         title: "Error",
-        description: `Please enter your ${prize?.participationType || "email"}.`,
+        description: `Please enter your ${currentPrize?.participationType || "email"}.`,
         variant: "destructive",
       });
       return;
     }
 
-    // 🔹 التحقق من صحة الإيميل إذا كان النوع email
-    if (prize.participationType === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(inputValue)) {
-        toast({
-          title: "Error",
-          description: "Please enter a valid email address.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+    // 🔹 تحديث الـ ref فوراً
+    submissionRef.current = {
+      isSubmitting: true,
+      currentPrize,
+      currentInput
+    };
 
     setIsSubmitting(true);
 
     try {
-      // 🔹 توليد المفتاح الفريد أولاً
+      // 🔹 توليد المفتاح الفريد
       const uniqueKey = generateUniqueKey();
       console.log("🔑 Generated Key:", uniqueKey);
       
       // 🔹 إعداد البيانات بشكل كامل
       const participantData = {
-        participantKey: uniqueKey, // 🔹 اسم حقل أكثر وضوحاً
-        [prize.participationType || "email"]: inputValue.trim(),
-        prize: prize.name,
-        prizeId: prize.id,
+        participantKey: uniqueKey,
+        uniqueIdentifier: uniqueKey, // 🔹 حقل إضافي للتأكيد
+        [currentPrize.participationType || "email"]: currentInput,
+        prize: currentPrize.name,
+        prizeId: currentPrize.id,
         status: "pending",
         joinDate: new Date().toISOString(),
         verified: false,
         completed: false,
-        timestamp: new Date().toISOString(), // 🔹 إضافة timestamp إضافي
+        timestamp: new Date().toISOString(),
+        // 🔹 إضافة بيانات إضافية للتتبع
+        submissionTime: new Date().toLocaleString(),
+        attempt: "primary"
       };
 
-      console.log("📤 Preparing to save data:", participantData);
+      console.log("📤 Saving participant data:", participantData);
 
-      // 🔹 استخدام await للتأكد من اكتمال العملية
+      // 🔹 الحفظ في Firestore
       const docRef = doc(firestore, "participants", uniqueKey);
-      console.log("📝 Document reference:", docRef.path);
-      
       await setDoc(docRef, participantData);
       
-      console.log("✅ Successfully saved with key:", uniqueKey);
+      console.log("✅ Firestore setDoc completed");
 
-      // 🔹 التحقق من أن البيانات حفظت بالفعل
-      console.log("🎉 Participation registered successfully");
+      // 🔹 التحقق من الحفظ
+      const isVerified = await verifyDocumentSave(uniqueKey);
+      
+      if (!isVerified) {
+        throw new Error("Document verification failed");
+      }
+
+      console.log("🎉 Participation registered successfully with key:", uniqueKey);
 
       // 🔹 استدعاء callback المشاركة
-      onParticipate(inputValue.trim());
+      onParticipate(currentInput);
 
       // 🔹 إعادة تعيين الحقول
       setInputValue("");
       
-      // 🔹 إغلاق الـ modal
+      // 🔹 إغلاق الـ modal بعد نجاح العملية
       onClose();
 
       toast({
@@ -147,13 +192,36 @@ const ParticipationModal = ({
       });
 
     } catch (error) {
-      console.error("❌ Error adding participation:", error);
+      console.error("❌ Error in submission process:", error);
+      
+      // 🔹 محاولة حفظ بديلة في حالة الخطأ
+      try {
+        console.log("🔄 Attempting backup save...");
+        const backupKey = `backup_${generateUniqueKey()}`;
+        const backupData = {
+          ...participantData,
+          participantKey: backupKey,
+          uniqueIdentifier: backupKey,
+          attempt: "backup",
+          error: error instanceof Error ? error.message : "Unknown error",
+          originalKey: uniqueKey
+        };
+        
+        const backupDocRef = doc(firestore, "participants_backup", backupKey);
+        await setDoc(backupDocRef, backupData);
+        console.log("📦 Backup save completed");
+      } catch (backupError) {
+        console.error("❌ Backup save also failed:", backupError);
+      }
+
       toast({
         title: "Error",
         description: "There was an error registering your participation. Please try again.",
         variant: "destructive",
       });
     } finally {
+      // 🔹 إعادة تعيين الحالة في النهاية
+      submissionRef.current.isSubmitting = false;
       setIsSubmitting(false);
     }
   };
@@ -161,6 +229,7 @@ const ParticipationModal = ({
   const handleClose = () => {
     setInputValue("");
     setIsSubmitting(false);
+    submissionRef.current.isSubmitting = false;
     onClose();
   };
 
@@ -232,7 +301,10 @@ const ParticipationModal = ({
                     : "Enter your Email"
                 }
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  submissionRef.current.currentInput = e.target.value;
+                }}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
                 required
                 disabled={isSubmitting}
