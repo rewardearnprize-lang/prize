@@ -61,7 +61,6 @@ const ParticipationModal = ({
   useEffect(() => {
     if (isOpen && prize) {
       fetchJoinedCount();
-      // إعادة تعيين الحالة عند فتح الـ modal
       setInputValue("");
       setIsSubmitting(false);
     }
@@ -69,7 +68,9 @@ const ParticipationModal = ({
 
   // 🔹 دالة محسنة لتوليد مفتاح فريد
   const generateUniqueKey = useCallback(() => {
-    return `key_${Math.random().toString(36).substring(2, 15)}_${Date.now().toString(36)}`;
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 15);
+    return `key_${timestamp}_${random}`;
   }, []);
 
   // 🔹 دالة محسنة للإرسال
@@ -101,11 +102,13 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      // 🔹 توليد المفتاح الفريد
+      // 🔹 توليد المفتاح الفريد أولاً
       const uniqueKey = generateUniqueKey();
+      console.log("🔑 Generated Key:", uniqueKey);
       
-      // 🔹 إعداد البيانات بشكل كامل قبل الحفظ
+      // 🔹 إعداد البيانات بشكل كامل
       const participantData = {
+        participantKey: uniqueKey, // 🔹 اسم حقل أكثر وضوحاً
         [prize.participationType || "email"]: inputValue.trim(),
         prize: prize.name,
         prizeId: prize.id,
@@ -113,15 +116,21 @@ const ParticipationModal = ({
         joinDate: new Date().toISOString(),
         verified: false,
         completed: false,
-        key: uniqueKey, // 🔹 تأكيد إضافة الـ key
+        timestamp: new Date().toISOString(), // 🔹 إضافة timestamp إضافي
       };
 
-      console.log("📤 Saving participant data:", participantData);
+      console.log("📤 Preparing to save data:", participantData);
 
-      // 🔹 حفظ البيانات في Firestore
-      await setDoc(doc(firestore, "participants", uniqueKey), participantData);
+      // 🔹 استخدام await للتأكد من اكتمال العملية
+      const docRef = doc(firestore, "participants", uniqueKey);
+      console.log("📝 Document reference:", docRef.path);
+      
+      await setDoc(docRef, participantData);
+      
+      console.log("✅ Successfully saved with key:", uniqueKey);
 
-      console.log("✅ Participant added with key:", uniqueKey);
+      // 🔹 التحقق من أن البيانات حفظت بالفعل
+      console.log("🎉 Participation registered successfully");
 
       // 🔹 استدعاء callback المشاركة
       onParticipate(inputValue.trim());
@@ -129,7 +138,7 @@ const ParticipationModal = ({
       // 🔹 إعادة تعيين الحقول
       setInputValue("");
       
-      // 🔹 إغلاق الـ modal بعد نجاح العملية
+      // 🔹 إغلاق الـ modal
       onClose();
 
       toast({
@@ -149,7 +158,6 @@ const ParticipationModal = ({
     }
   };
 
-  // 🔹 دالة للتعامل مع إغلاق الـ modal
   const handleClose = () => {
     setInputValue("");
     setIsSubmitting(false);
