@@ -1,6 +1,4 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { registerOfferInFirestore } from "@/lib/registerOffer";
-import { generateUserKey } from "@/lib/utils";
 import {
   collection,
   getDocs,
@@ -78,7 +76,6 @@ export const fetchDraws = createAsyncThunk(
   updatedAt: data.updatedAt || new Date().toISOString(),
   offerUrl: data.offerUrl || "",  
   participationType: data.participationType || "email",
-           key: generateUid(),
 };
 
         });
@@ -126,38 +123,27 @@ export const addDraw = createAsyncThunk(
 
       const now = new Date().toISOString();
 
-      // ✅ 1. إنشاء مفتاح فريد لكل عرض
-      const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const newDraw: Omit<Draw, "id"> = {
+  name: drawData.name || "سحب جديد",
+  description: drawData.description || "",
+  prize: drawData.prize || "جائزة",
+  prizeValue: drawData.prizeValue || 0,
+  maxWinners: drawData.maxWinners || 1,
+  maxParticipants: drawData.maxParticipants || 0,
+  currentWinners: 0,
+  startDate: drawData.startDate || "",
+  endDate: drawData.endDate || "",
+  status: drawData.status || "active",
+  participants: [],
+  winners: [],
+  createdAt: now,
+  updatedAt: now,
+  offerUrl: drawData.offerUrl || "",  
+  participationType: drawData.participationType || "email",
+};
 
-      // ✅ 2. إنشاء كائن السحب الجديد
-      const newDraw: Omit<Draw, "id"> = {
-        name: drawData.name || "سحب جديد",
-        description: drawData.description || "",
-        prize: drawData.prize || "جائزة",
-        prizeValue: drawData.prizeValue || 0,
-        maxWinners: drawData.maxWinners || 1,
-        maxParticipants: drawData.maxParticipants || 0,
-        currentWinners: 0,
-        startDate: drawData.startDate || "",
-        endDate: drawData.endDate || "",
-        status: drawData.status || "active",
-        participants: [],
-        winners: [],
-        createdAt: now,
-        updatedAt: now,
-        offerUrl: drawData.offerUrl || "",
-        participationType: drawData.participationType || "email",
 
-        // ✅ 3. نضيف المفتاح الجديد هنا
-        key: uniqueKey,
-      };
-
-      // ✅ 4. رفع البيانات إلى Firestore
       const docRef = await addDoc(drawsCollection, newDraw);
-
-      // ✅ 5. تسجيل العرض في Firestore عبر الـ API
-      await registerOfferInFirestore(docRef.id, uniqueKey);
-
       return { ...newDraw, id: docRef.id };
     } catch (error) {
       console.error("❌ Failed to add draw:", error);
@@ -165,7 +151,6 @@ export const addDraw = createAsyncThunk(
     }
   }
 );
-
 
 // ---------------- Update draw ----------------
 export const updateDraw = createAsyncThunk(
