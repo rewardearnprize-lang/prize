@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; 
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { doc, setDoc, collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, setDoc, doc, getDocs, query, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
@@ -41,6 +41,7 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
+  // جلب عدد المشاركين
   const fetchJoinedCount = async () => {
     if (!prize) return;
     const q = query(
@@ -58,6 +59,7 @@ const ParticipationModal = ({
     }
   }, [isOpen, prize]);
 
+  // دالة الإرسال
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue || !prize) {
@@ -71,42 +73,36 @@ const ParticipationModal = ({
 
     setIsSubmitting(true);
 
-  
-  try {
-    // توليد مفتاح جديد لكل محاولة
-    const uniqueKey =
-      "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    try {
+      // 🔹 توليد مفتاح فريد لكل محاولة
+      const uniqueKey =
+        "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-    // إرسال البيانات إلى Firestore
-    await setDoc(doc(firestore, "participants", uniqueKey), {
-      [prize?.participationType || "email"]: inputValue,
-      prize: prize.name,
-      prizeId: prize.id,
-      status: "pending",
-      joinDate: new Date().toISOString(),
-      verified: false,
-      completed: false,
-      key: uniqueKey,
-    });
+      // 🔹 حفظ البيانات في Firestore باستخدام المفتاح كمفتاح أساسي
+      await setDoc(doc(firestore, "participants", uniqueKey), {
+        [prize?.participationType || "email"]: inputValue,
+        prize: prize.name,
+        prizeId: prize.id,
+        status: "pending",
+        joinDate: new Date().toISOString(),
+        verified: false,
+       // completed: false,
+        key: uniqueKey,
+      });
 
-    console.log("✅ Participant added with key:", uniqueKey);
+      console.log("✅ Participant added with key:", uniqueKey);
 
-    // تحديث الحالة بعد الإرسال
-    onParticipate(inputValue);
-    setInputValue(""); // إعادة تعيين الحقل
-    onClose();         // إغلاق الـ dialog
+      onParticipate(inputValue);
 
-    
-  } catch (error) {
-    console.error("❌ Failed to register participant:", error);
-    toast({
-      title: "Error ❌",
-      description: "Failed to register your participation. Please try again.",
-    });
-  }
+      // إعادة تعيين الحقول وإغلاق الـ dialog
+      setInputValue("");
+      onClose();
 
-    
-
+      toast({
+        title: "Participation Registered 🎉",
+        description:
+          "Check your entry on the verification page to confirm participation.",
+      });
     } catch (error) {
       console.error("Error adding participation:", error);
       toast({
