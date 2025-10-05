@@ -80,11 +80,18 @@ export const fetchParticipants = createAsyncThunk(
 );
 
 // Add new participant
+// Add new participant
 export const addParticipant = createAsyncThunk(
   "participants/addParticipant",
   async (participantData: Omit<Participant, "id">, { rejectWithValue }) => {
     try {
       const participantsCollection = collection(firestore, "participants");
+
+      // ✅ توليد مفتاح فريد لكل مستخدم
+      const uniqueKey =
+        "key_" +
+        Math.random().toString(36).substring(2, 15) +
+        Date.now().toString(36);
 
       const cleanParticipantData = Object.fromEntries(
         Object.entries(participantData).filter(
@@ -97,9 +104,18 @@ export const addParticipant = createAsyncThunk(
         status: "pending",
         joinDate: new Date().toISOString().split("T")[0],
         lastActivity: new Date().toISOString().split("T")[0],
+
+        // ✅ نضيف المفتاح هنا
+        key: uniqueKey,
+
+        // ✅ نضيف completed false كبداية
+        completed: false,
       };
 
       const docRef = await addDoc(participantsCollection, newParticipant);
+
+      console.log("✅ Participant added with key:", uniqueKey);
+
       return { ...newParticipant, id: docRef.id };
     } catch (error) {
       console.error("❌ Failed to add participant:", error);
@@ -107,6 +123,7 @@ export const addParticipant = createAsyncThunk(
     }
   }
 );
+
 
 // Update participant
 export const updateParticipant = createAsyncThunk(
