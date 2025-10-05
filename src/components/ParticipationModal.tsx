@@ -71,34 +71,47 @@ const ParticipationModal = ({
 
     setIsSubmitting(true);
 
-    try {
- 
-      // توليد مفتاح فريد
-const handleParticipate = async () => {
-  if (!inputValue) return; // شرط بسيط لمنع إرسال فارغ
+    const handleParticipate = async () => {
+  if (!inputValue) return; // إذا كان الحقل فارغ، لا نفعل شيئًا
 
-  // توليد مفتاح جديد لكل محاولة
-  const uniqueKey =
-    "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  try {
+    // توليد مفتاح جديد لكل محاولة
+    const uniqueKey =
+      "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-  await setDoc(doc(firestore, "participants", uniqueKey), {
-    [prize?.participationType || "email"]: inputValue,
-    prize: prize.name,
-    prizeId: prize.id,
-    status: "pending",
-    joinDate: new Date().toISOString(),
-    verified: false,
-    completed: false,
-    key: uniqueKey,
-  });
+    // إرسال البيانات إلى Firestore
+    await setDoc(doc(firestore, "participants", uniqueKey), {
+      [prize?.participationType || "email"]: inputValue,
+      prize: prize.name,
+      prizeId: prize.id,
+      status: "pending",
+      joinDate: new Date().toISOString(),
+      verified: false,
+      completed: false,
+      key: uniqueKey,
+    });
 
-  console.log("✅ Participant added with key:", uniqueKey);
+    console.log("✅ Participant added with key:", uniqueKey);
 
-  onParticipate(inputValue);
+    // تحديث الحالة بعد الإرسال
+    onParticipate(inputValue);
+    setInputValue(""); // إعادة تعيين الحقل
+    onClose();         // إغلاق الـ dialog
 
-  setInputValue(""); // إعادة تعيين بعد كل مشاركة
-  onClose();         // إغلاق الـ dialog
+    toast({
+      title: "Participation Registered 🎉",
+      description:
+        "Check your entry on the verification page to confirm participation.",
+    });
+  } catch (error) {
+    console.error("❌ Failed to register participant:", error);
+    toast({
+      title: "Error ❌",
+      description: "Failed to register your participation. Please try again.",
+    });
+  }
 };
+
     
 
     } catch (error) {
