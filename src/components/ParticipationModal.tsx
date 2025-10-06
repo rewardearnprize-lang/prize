@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
-import { participationManager } from "@/lib/participationManager";
 
 interface ParticipationModalProps {
   isOpen: boolean;
@@ -42,39 +41,26 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 دالة محسنة لجلب عدد المشاركين
-  const fetchJoinedCount = useCallback(async () => {
-    if (!prize?.id) return;
-    
-    try {
-      const q = query(
-        collection(firestore, "participants"),
-        where("prizeId", "==", prize.id),
-        where("verified", "==", true)
-      );
-      const snap = await getDocs(q);
-      setJoinedCount(snap.size);
-    } catch (error) {
-      console.error("Error fetching joined count:", error);
-    }
-  }, [prize?.id]);
+  const fetchJoinedCount = async () => {
+    if (!prize) return;
+    const q = query(
+      collection(firestore, "participants"),
+      where("prizeId", "==", prize.id),
+      where("verified", "==", true)
+    );
+    const snap = await getDocs(q);
+    setJoinedCount(snap.size);
+  };
 
   useEffect(() => {
     if (isOpen && prize) {
       fetchJoinedCount();
-      setInputValue("");
-      setIsSubmitting(false);
-      
-      // 🔹 طباعة حالة المدير للتتبع
-      console.log("🔄 Modal opened, manager status:", participationManager.getStatus());
     }
-  }, [isOpen, prize, fetchJoinedCount]);
+  }, [isOpen, prize]);
 
-  // 🔹 دالة محسنة للإرسال باستخدام المدير
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!inputValue.trim() || !prize) {
+    if (!inputValue || !prize) {
       toast({
         title: "Error",
         description: `Please enter your ${prize?.participationType || "email"}.`,
@@ -86,40 +72,42 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      console.log("🚀 Starting submission with manager...");
-      
-      // 🔹 استخدام المدير للإرسال
-      const uniqueKey = await participationManager.submitParticipation({
-        prize: {
-          id: prize.id,
-          name: prize.name,
-          participationType: prize.participationType
-        },
-        inputValue: inputValue.trim()
+      // ✅ توليد مفتاح فريد جديد في كل مرة
+      const uniqueKey =
+        "key_" +
+        Math.random().toString(36).substring(2, 15) +
+        "_" +
+        Date.now().toString(36);
+
+      // ✅ إضافة البيانات في Firestore
+      const docRef = await addDoc(collection(firestore, "participants"), {
+        [prize?.participationType || "email"]: inputValue,
+        prize: prize.name,
+        prizeId: prize.id,
+        status: "pending",
+        joinDate: new Date().toISOString(),
+        verified: false,
+        completed: false,
+        key: uniqueKey,
       });
 
-      console.log("✅ Manager submission completed with key:", uniqueKey);
+      console.log("✅ Participant added with key:", uniqueKey, "Doc ID:", docRef.id);
 
-      // 🔹 استدعاء callback المشاركة
-      onParticipate(inputValue.trim());
-
-      // 🔹 إعادة تعيين الحقول
+      onParticipate(inputValue);
       setInputValue("");
-      
-      // 🔹 إغلاق الـ modal بعد نجاح العملية
       onClose();
 
       toast({
         title: "Participation Registered 🎉",
-        description: "Check your entry on the verification page to confirm participation.",
+        description:
+          "Check your entry on the verification page to confirm participation.",
       });
-
     } catch (error) {
-      console.error("❌ Error in modal submission:", error);
-      
+      console.error("Error adding participation:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "There was an error registering your participation. Please try again.",
+        description:
+          "There was an error registering your participation. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -127,24 +115,14 @@ const ParticipationModal = ({
     }
   };
 
-  const handleClose = () => {
-    setInputValue("");
-    setIsSubmitting(false);
-    onClose();
-  };
-
   if (!prize) return null;
 
   const remaining = prize.maxParticipants
-    ? Math.max(0, prize.maxParticipants - joinedCount)
-    : 0;
-
-  const progressPercentage = prize.maxParticipants
-    ? ((prize.maxParticipants - remaining) / prize.maxParticipants) * 100
+    ? prize.maxParticipants - joinedCount
     : 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
         <DialogHeader>
           <DialogTitle className="text-center">
@@ -171,7 +149,13 @@ const ParticipationModal = ({
                 <div
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                   style={{
-                    width: `${progressPercentage}%`,
+                    width: `${
+                      prize.maxParticipants
+                        ? ((prize.maxParticipants - remaining) /
+                            prize.maxParticipants) *
+                          100
+                        : 0
+                    }%`,
                   }}
                 ></div>
               </div>
@@ -204,7 +188,6 @@ const ParticipationModal = ({
                 onChange={(e) => setInputValue(e.target.value)}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
                 required
-                disabled={isSubmitting}
               />
             </div>
 
@@ -220,7 +203,6 @@ const ParticipationModal = ({
                     </span>
                     Enter your {prize.participationType === "id" ? "ID" : "Email"} address
                   </div>
-
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       2
@@ -247,7 +229,7 @@ const ParticipationModal = ({
               <Button
                 type="submit"
                 className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
-                disabled={isSubmitting || !inputValue.trim()}
+                disabled={isSubmitting}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Processing..." : "Participate Now"}
@@ -256,9 +238,8 @@ const ParticipationModal = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleClose}
+                onClick={onClose}
                 className="border-white/30 text-black hover:bg-white/10"
-                disabled={isSubmitting}
               >
                 Cancel
               </Button>
