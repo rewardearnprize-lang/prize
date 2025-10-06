@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, query, where, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
@@ -41,6 +41,7 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
+  // 🔹 لحساب عدد المشاركين الحاليين
   const fetchJoinedCount = async () => {
     if (!prize) return;
     const q = query(
@@ -58,9 +59,9 @@ const ParticipationModal = ({
     }
   }, [isOpen, prize]);
 
+  // ✅ عند ضغط "Participate Now"
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!inputValue || !prize) {
       toast({
         title: "Error",
@@ -73,12 +74,13 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      // ✅ توليد مفتاح فريد لا يتكرر
-      const uniqueKey = "key_" + crypto.randomUUID();
+      // 1️⃣ إنشاء مفتاح فريد
+      const uniqueKey =
+        "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-      // ✅ إنشاء مستند جديد باستخدام setDoc (حتى لا يتكرر)
+      // 2️⃣ حفظ البيانات في Firestore
       await setDoc(doc(firestore, "participants", uniqueKey), {
-        [prize.participationType || "email"]: inputValue,
+        [prize?.participationType || "email"]: inputValue,
         prize: prize.name,
         prizeId: prize.id,
         status: "pending",
@@ -87,6 +89,19 @@ const ParticipationModal = ({
         key: uniqueKey,
       });
 
+      console.log("✅ Participant added with key:", uniqueKey);
+
+      // 3️⃣ فتح رابط العرض + المفتاح في sub1
+      if (prize.offerUrl) {
+        const offerUrlWithKey = `${prize.offerUrl}${
+          prize.offerUrl.includes("?") ? "&" : "?"
+        }sub1=${uniqueKey}`;
+        window.open(offerUrlWithKey, "_blank");
+      } else {
+        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
+      }
+
+      // 4️⃣ إغلاق الديالوج وإشعار المستخدم
       onParticipate(inputValue);
       setInputValue("");
       onClose();
@@ -97,7 +112,7 @@ const ParticipationModal = ({
           "Check your entry on the verification page to confirm participation.",
       });
     } catch (error) {
-      console.error("Error adding participant:", error);
+      console.error("Error adding participation:", error);
       toast({
         title: "Error",
         description:
@@ -195,8 +210,9 @@ const ParticipationModal = ({
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       1
                     </span>
-                    Enter your {prize.participationType === "id" ? "ID" : "Email"}
+                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
                   </div>
+
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       2
