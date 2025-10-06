@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, setDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
@@ -60,6 +60,7 @@ const ParticipationModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!inputValue || !prize) {
       toast({
         title: "Error",
@@ -72,26 +73,19 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      // ✅ توليد مفتاح فريد جديد في كل مرة
-      const uniqueKey =
-        "key_" +
-        Math.random().toString(36).substring(2, 15) +
-        "_" +
-        Date.now().toString(36);
+      // ✅ توليد مفتاح فريد لا يتكرر
+      const uniqueKey = "key_" + crypto.randomUUID();
 
-      // ✅ إضافة البيانات في Firestore
-      const docRef = await addDoc(collection(firestore, "participants"), {
-        [prize?.participationType || "email"]: inputValue,
+      // ✅ إنشاء مستند جديد باستخدام setDoc (حتى لا يتكرر)
+      await setDoc(doc(firestore, "participants", uniqueKey), {
+        [prize.participationType || "email"]: inputValue,
         prize: prize.name,
         prizeId: prize.id,
         status: "pending",
         joinDate: new Date().toISOString(),
         verified: false,
-        completed: false,
         key: uniqueKey,
       });
-
-      console.log("✅ Participant added with key:", uniqueKey, "Doc ID:", docRef.id);
 
       onParticipate(inputValue);
       setInputValue("");
@@ -103,7 +97,7 @@ const ParticipationModal = ({
           "Check your entry on the verification page to confirm participation.",
       });
     } catch (error) {
-      console.error("Error adding participation:", error);
+      console.error("Error adding participant:", error);
       toast({
         title: "Error",
         description:
@@ -201,7 +195,7 @@ const ParticipationModal = ({
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       1
                     </span>
-                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
+                    Enter your {prize.participationType === "id" ? "ID" : "Email"}
                   </div>
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
