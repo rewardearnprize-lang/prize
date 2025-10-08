@@ -41,7 +41,6 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 لحساب عدد المشاركين الحاليين
   const fetchJoinedCount = async () => {
     if (!prize) return;
     const q = query(
@@ -59,7 +58,6 @@ const ParticipationModal = ({
     }
   }, [isOpen, prize]);
 
-  // ✅ عند ضغط "Participate Now"
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue || !prize) {
@@ -74,11 +72,13 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      // 1️⃣ إنشاء مفتاح فريد
+      // ✅ توليد مفتاح فريد
       const uniqueKey =
-        "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+        "key_" +
+        Math.random().toString(36).substring(2, 15) +
+        Date.now().toString(36);
 
-      // 2️⃣ حفظ البيانات في Firestore
+      // ✅ حفظ البيانات في Firestore باستخدام المفتاح كمُعرّف المستند
       await setDoc(doc(firestore, "participants", uniqueKey), {
         [prize?.participationType || "email"]: inputValue,
         prize: prize.name,
@@ -89,19 +89,13 @@ const ParticipationModal = ({
         key: uniqueKey,
       });
 
-      console.log("✅ Participant added with key:", uniqueKey);
+      // ✅ إنشاء رابط العرض مع المفتاح
+      const offerUrlWithKey = `${prize.offerUrl}?sub1=${uniqueKey}`;
 
-      // 3️⃣ فتح رابط العرض + المفتاح في sub1
-      if (prize.offerUrl) {
-        const offerUrlWithKey = `${prize.offerUrl}${
-          prize.offerUrl.includes("?") ? "&" : "?"
-        }sub1=${uniqueKey}`;
-        window.open(offerUrlWithKey, "_blank");
-      } else {
-        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
-      }
+      // ✅ فتح الرابط في تبويب جديد فقط (وليس داخل نفس الصفحة)
+      window.open(offerUrlWithKey, "_blank");
 
-      // 4️⃣ إغلاق الديالوج وإشعار المستخدم
+      // ✅ نغلق الـDialog وننظف القيم
       onParticipate(inputValue);
       setInputValue("");
       onClose();
@@ -109,10 +103,12 @@ const ParticipationModal = ({
       toast({
         title: "Participation Registered 🎉",
         description:
-          "Check your entry on the verification page to confirm participation.",
+          "Your participation has been recorded. Complete the offer to confirm!",
       });
+
+      console.log("✅ Participant added with key:", uniqueKey);
     } catch (error) {
-      console.error("Error adding participation:", error);
+      console.error("❌ Error adding participation:", error);
       toast({
         title: "Error",
         description:
