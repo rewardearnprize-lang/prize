@@ -242,7 +242,8 @@ const ParticipationModal = ({
 
             <div className="flex space-x-3">
               <Button
-                type="submit"
+                type="button"
+      onClick={handleSubmit}
                 className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
                 disabled={isSubmitting}
               >
