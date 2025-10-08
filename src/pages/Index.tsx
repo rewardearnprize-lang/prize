@@ -204,34 +204,11 @@ const Index = () => {
   // المشاركة وإعادة التوجيه للعرض
   // ==========================
   const handleParticipation = (email: string) => {
-    if (selectedPrize) {
-      localStorage.setItem("currentUserEmail", email);
-
-      let uid = localStorage.getItem("currentUserUID");
-      if (!uid) {
-        uid = generateUID();
-        localStorage.setItem("currentUserUID", uid);
-      }
-
-      if (selectedPrize.offerUrl) {
-        const redirectUrl = `https://prizeapp.netlify.app/?success=true&prizeId=${
-          selectedPrize.id
-        }&prizeName=${encodeURIComponent(selectedPrize.name)}&uid=${encodeURIComponent(uid)}`;
-
-        const offerWithSubid = `${selectedPrize.offerUrl}${
-          selectedPrize.offerUrl.includes("?") ? "&" : "?"
-        }subid=${encodeURIComponent(uid)}`;
-
-        window.location.href = `${offerWithSubid}&redirect=${encodeURIComponent(redirectUrl)}`;
-      } else {
-        toast({
-          title: "لا يوجد لينك عرض",
-          description: "من فضلك تواصل مع الإدارة",
-          variant: "destructive",
-        });
-      }
-    }
-  };
+  if (selectedPrize) {
+    // فقط نحفظ الإيميل بدون فتح أي رابط
+    localStorage.setItem("currentUserEmail", email);
+  }
+};
 
   const handleSuccessModalContinue = () => {
     setShowSuccessModal(false);
