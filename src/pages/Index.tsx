@@ -207,27 +207,7 @@ const Index = () => {
   if (selectedPrize) {
     localStorage.setItem("currentUserEmail", email);
 
-    let uid = localStorage.getItem("currentUserUID");
-    if (!uid) {
-      uid = generateUID();
-      localStorage.setItem("currentUserUID", uid);
-    }
-
-    if (selectedPrize.offerUrl) {
-      // نضيف فقط subid دون أي redirect
-      const offerWithSubid = `${selectedPrize.offerUrl}${
-        selectedPrize.offerUrl.includes("?") ? "&" : "?"
-      }subid=${encodeURIComponent(uid)}`;
-
-      // نفتح العرض مباشرة بدون أي تحويل لاحق
-      window.location.href = offerWithSubid;
-    } else {
-      toast({
-        title: "لا يوجد لينك عرض",
-        description: "من فضلك تواصل مع الإدارة",
-        variant: "destructive",
-      });
-    }
+    
   }
 };
 
