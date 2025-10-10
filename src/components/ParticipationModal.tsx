@@ -93,15 +93,11 @@ const ParticipationModal = ({
 
       // 3️⃣ فتح رابط العرض + المفتاح في sub1
       if (selectedPrize.offerUrl) {
-  const redirectUrl = `https://prize-xi.vercel.app/?success=true&prizeId=${
-    selectedPrize.id
-  }&prizeName=${encodeURIComponent(selectedPrize.name)}&uid=${encodeURIComponent(uid)}`;
+  const redirectUrl = `https://prize-xi.vercel.app/?success=true&prizeId=${selectedPrize.id}&prizeName=${encodeURIComponent(selectedPrize.name)}&uid=${encodeURIComponent(uid)}`;
 
-  const offerRedirect = `https://prize-xi.vercel.app/redirect.html?url=${encodeURIComponent(
-    selectedPrize.offerUrl
-  )}&subid=${encodeURIComponent(uid)}&redirect=${encodeURIComponent(redirectUrl)}`;
+const offerRedirect = `https://prize-xi.vercel.app/redirect.html?url=${encodeURIComponent(selectedPrize.offerUrl)}&subid=${encodeURIComponent(uid)}&redirect=${encodeURIComponent(redirectUrl)}`;
 
-  window.location.href = offerRedirect;
+window.location.href = offerRedirect;
       }
 
       // 4️⃣ إغلاق الديالوج وإشعار المستخدم
