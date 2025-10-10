@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import {
-Dialog,
-DialogContent,
-DialogHeader,
-DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,260 +15,256 @@ import { collection, getDocs, query, where, setDoc, doc } from "firebase/firesto
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
-isOpen: boolean;
-onClose: () => void;
-prize: {
-id: string;
-name: string;
-image?: string;
-prizeValue?: number;
-value?: string;
-maxParticipants?: number;
-offerUrl?: string;
-participationType?: "email" | "id";
-} | null;
-onParticipate: (inputValue: string) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  prize: {
+    id: string;
+    name: string;
+    image?: string;
+    prizeValue?: number;
+    value?: string;
+    maxParticipants?: number;
+    offerUrl?: string;
+    participationType?: "email" | "id";
+  } | null;
+  onParticipate: (inputValue: string) => void;
 }
 
 const ParticipationModal = ({
-isOpen,
-onClose,
-prize,
-onParticipate,
+  isOpen,
+  onClose,
+  prize,
+  onParticipate,
 }: ParticipationModalProps) => {
-const [inputValue, setInputValue] = useState("");
-const [isSubmitting, setIsSubmitting] = useState(false);
-const [joinedCount, setJoinedCount] = useState(0);
-const { toast } = useToast();
+  const [inputValue, setInputValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [joinedCount, setJoinedCount] = useState(0);
+  const { toast } = useToast();
 
-// 🔹 لحساب عدد المشاركين الحاليين
-const fetchJoinedCount = async () => {
-if (!prize) return;
-const q = query(
-collection(firestore, "participants"),
-where("prizeId", "==", prize.id),
-where("verified", "==", true)
-);
-const snap = await getDocs(q);
-setJoinedCount(snap.size);
-};
+  // 🔹 لحساب عدد المشاركين الحاليين
+  const fetchJoinedCount = async () => {
+    if (!prize) return;
+    const q = query(
+      collection(firestore, "participants"),
+      where("prizeId", "==", prize.id),
+      where("verified", "==", true)
+    );
+    const snap = await getDocs(q);
+    setJoinedCount(snap.size);
+  };
 
-useEffect(() => {
-if (isOpen && prize) {
-fetchJoinedCount();
-}
-}, [isOpen, prize]);
+  useEffect(() => {
+    if (isOpen && prize) {
+      fetchJoinedCount();
+    }
+  }, [isOpen, prize]);
 
-// ✅ عند ضغط "Participate Now"
-const handleSubmit = async (e: React.FormEvent) => {
-e.preventDefault();
-if (!inputValue || !prize) {
-toast({
-title: "Error",
-description: Please enter your ${prize?.participationType || "email"}.,
-variant: "destructive",
-});
-return;
-}
+  // ✅ عند ضغط "Participate Now"
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue || !prize) {
+      toast({
+        title: "Error",
+        description: `Please enter your ${prize?.participationType || "email"}.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-setIsSubmitting(true);  
+    setIsSubmitting(true);
 
-try {  
-  // 1️⃣ إنشاء مفتاح فريد  
-  const uniqueKey =  
-    "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);  
+    try {
+      // 1️⃣ إنشاء مفتاح فريد
+      const uniqueKey =
+        "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-  // 2️⃣ حفظ البيانات في Firestore  
-  await setDoc(doc(firestore, "participants", uniqueKey), {  
-    [prize?.participationType || "email"]: inputValue,  
-    prize: prize.name,  
-    prizeId: prize.id,  
-    status: "pending",  
-    joinDate: new Date().toISOString(),  
-    verified: false,  
-    key: uniqueKey,  
-  });  
+      // 2️⃣ حفظ البيانات في Firestore
+      await setDoc(doc(firestore, "participants", uniqueKey), {
+        [prize?.participationType || "email"]: inputValue,
+        prize: prize.name,
+        prizeId: prize.id,
+        status: "pending",
+        joinDate: new Date().toISOString(),
+        verified: false,
+        key: uniqueKey,
+      });
 
-  console.log("✅ Participant added with key:", uniqueKey);  
+      console.log("✅ Participant added with key:", uniqueKey);
 
-  // 3️⃣ فتح رابط العرض + المفتاح في sub1  
-  if (selectedPrize.offerUrl) {
-  const redirectUrl = `https://prize-xi.vercel.app/?success=true&prizeId=${
-    selectedPrize.id
-  }&prizeName=${encodeURIComponent(selectedPrize.name)}&uid=${encodeURIComponent(uid)}`;
+      // 3️⃣ فتح رابط العرض + المفتاح في sub1
+      if (prize.offerUrl) {
+        const offerUrlWithKey = `${prize.offerUrl}${
+          prize.offerUrl.includes("?") ? "&" : "?"
+        }sub1=${uniqueKey}`;
+        window.open(offerUrlWithKey, "_blank");
+      } else {
+        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
+      }
 
-  const offerRedirect = `https://prize-xi.vercel.app/redirect.html?url=${encodeURIComponent(
-    selectedPrize.offerUrl
-  )}&subid=${encodeURIComponent(uid)}&redirect=${encodeURIComponent(redirectUrl)}`;
+      // 4️⃣ إغلاق الديالوج وإشعار المستخدم
+      onParticipate(inputValue);
+      setInputValue("");
+      onClose();
 
-  window.location.href = offerRedirect;
-  }
+      toast({
+        title: "Participation Registered 🎉",
+        description:
+          "Check your entry on the verification page to confirm participation.",
+      });
+    } catch (error) {
+      console.error("Error adding participation:", error);
+      toast({
+        title: "Error",
+        description:
+          "There was an error registering your participation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  // 4️⃣ إغلاق الديالوج وإشعار المستخدم  
-  onParticipate(inputValue);  
-  setInputValue("");  
-  onClose();  
+  if (!prize) return null;
 
-  toast({  
-    title: "Participation Registered 🎉",  
-    description:  
-      "Check your entry on the verification page to confirm participation.",  
-  });  
-} catch (error) {  
-  console.error("Error adding participation:", error);  
-  toast({  
-    title: "Error",  
-    description:  
-      "There was an error registering your participation. Please try again.",  
-    variant: "destructive",  
-  });  
-} finally {  
-  setIsSubmitting(false);  
-}
+  const remaining = prize.maxParticipants
+    ? prize.maxParticipants - joinedCount
+    : 0;
 
-};
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
+        <DialogHeader>
+          <DialogTitle className="text-center">
+            <div className="space-y-4">
+              <div className="text-4xl">{prize.image || "🎁"}</div>
+              <h2 className="text-2xl font-bold text-white">Enter the Draw</h2>
+              <p className="text-lg text-gray-300">{prize.name}</p>
+              <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
+                Prize Value: {prize.prizeValue || prize.value}
+              </Badge>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
 
-if (!prize) return null;
+        <div className="space-y-6">
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Remaining slots:</span>
+                <Badge variant="secondary">{remaining}</Badge>
+              </div>
 
-const remaining = prize.maxParticipants
-? prize.maxParticipants - joinedCount
-: 0;
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${
+                      prize.maxParticipants
+                        ? ((prize.maxParticipants - remaining) /
+                            prize.maxParticipants) *
+                          100
+                        : 0
+                    }%`,
+                  }}
+                ></div>
+              </div>
 
-return (
-<Dialog open={isOpen} onOpenChange={onClose}>
-<DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
-<DialogHeader>
-<DialogTitle className="text-center">
-<div className="space-y-4">
-<div className="text-4xl">{prize.image || "🎁"}</div>
-<h2 className="text-2xl font-bold text-white">Enter the Draw</h2>
-<p className="text-lg text-gray-300">{prize.name}</p>
-<Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
-Prize Value: {prize.prizeValue || prize.value}
-</Badge>
-</div>
-</DialogTitle>
-</DialogHeader>
+              <div className="flex items-center text-sm text-gray-400">
+                <Clock className="w-4 h-4 mr-2" />
+                <span>The draw will take place once all slots are filled.</span>
+              </div>
+            </CardContent>
+          </Card>
+<form
+  onSubmit={(e) => {
+    e.preventDefault();
+    if (!isSubmitting) handleSubmit(e);
+  }}
+  className="space-y-4"
+>
+            <div>
+              <label className="block text-white font-medium mb-2">
+                {prize.participationType === "id" ? (
+                  <IdCard className="w-4 h-4 inline mr-2" />
+                ) : (
+                  <Mail className="w-4 h-4 inline mr-2" />
+                )}
+                {prize.participationType === "id" ? "ID" : "Email"}
+              </label>
+              <Input
+                type={prize.participationType === "id" ? "text" : "email"}
+                placeholder={
+                  prize.participationType === "id"
+                    ? "Enter your ID"
+                    : "Enter your Email"
+                }
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                required
+              />
+            </div>
 
-<div className="space-y-6">  
-      <Card className="bg-white/10 backdrop-blur-sm border-white/20">  
-        <CardContent className="p-4 space-y-3">  
-          <div className="flex items-center justify-between">  
-            <span className="text-gray-300">Remaining slots:</span>  
-            <Badge variant="secondary">{remaining}</Badge>  
-          </div>  
+            <Card className="bg-blue-500/20 border-blue-500/30">
+              <CardContent className="p-4">
+                <h4 className="text-white font-medium mb-3">
+                  Participation Steps:
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      1
+                    </span>
+                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
+                  </div>
 
-          <div className="w-full bg-gray-700 rounded-full h-2">  
-            <div  
-              className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"  
-              style={{  
-                width: `${  
-                  prize.maxParticipants  
-                    ? ((prize.maxParticipants - remaining) /  
-                        prize.maxParticipants) *  
-                      100  
-                    : 0  
-                }%`,  
-              }}  
-            ></div>  
-          </div>  
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      2
+                    </span>
+                    Complete the required offer
+                  </div>
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      3
+                    </span>
+                    Confirm your {prize.participationType === "id" ? "ID" : "Email"} again
+                  </div>
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      4
+                    </span>
+                    Wait for participation confirmation
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <div className="flex items-center text-sm text-gray-400">  
-            <Clock className="w-4 h-4 mr-2" />  
-            <span>The draw will take place once all slots are filled.</span>  
-          </div>  
-        </CardContent>  
-      </Card>
+            <div className="flex space-x-3">
+              <Button
+                type="button"
+      onClick={handleSubmit}
+                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+                disabled={isSubmitting}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {isSubmitting ? "Processing..." : "Participate Now"}
+              </Button>
 
-<form  
-  onSubmit={(e) => {  
-    e.preventDefault();  
-    if (!isSubmitting) handleSubmit(e);  
-  }}  
-  className="space-y-4"  
->  
-            <div>  
-              <label className="block text-white font-medium mb-2">  
-                {prize.participationType === "id" ? (  
-                  <IdCard className="w-4 h-4 inline mr-2" />  
-                ) : (  
-                  <Mail className="w-4 h-4 inline mr-2" />  
-                )}  
-                {prize.participationType === "id" ? "ID" : "Email"}  
-              </label>  
-              <Input  
-                type={prize.participationType === "id" ? "text" : "email"}  
-                placeholder={  
-                  prize.participationType === "id"  
-                    ? "Enter your ID"  
-                    : "Enter your Email"  
-                }  
-                value={inputValue}  
-                onChange={(e) => setInputValue(e.target.value)}  
-                className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"  
-                required  
-              />  
-            </div>  <Card className="bg-blue-500/20 border-blue-500/30">  
-          <CardContent className="p-4">  
-            <h4 className="text-white font-medium mb-3">  
-              Participation Steps:  
-            </h4>  
-            <div className="space-y-2 text-sm">  
-              <div className="flex items-center text-gray-300">  
-                <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">  
-                  1  
-                </span>  
-                Enter your {prize.participationType === "id" ? "ID" : "Email"} address  
-              </div>  
-
-              <div className="flex items-center text-gray-300">  
-                <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">  
-                  2  
-                </span>  
-                Complete the required offer  
-              </div>  
-              <div className="flex items-center text-gray-300">  
-                <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">  
-                  3  
-                </span>  
-                Confirm your {prize.participationType === "id" ? "ID" : "Email"} again  
-              </div>  
-              <div className="flex items-center text-gray-300">  
-                <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">  
-                  4  
-                </span>  
-                Wait for participation confirmation  
-              </div>  
-            </div>  
-          </CardContent>  
-        </Card>  
-
-        <div className="flex space-x-3">  
-          <Button  
-            type="button"  
-  onClick={handleSubmit}  
-            className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"  
-            disabled={isSubmitting}  
-          >  
-            <ExternalLink className="w-4 h-4 mr-2" />  
-            {isSubmitting ? "Processing..." : "Participate Now"}  
-          </Button>  
-
-          <Button  
-            type="button"  
-            variant="outline"  
-            onClick={onClose}  
-            className="border-white/30 text-black hover:bg-white/10"  
-          >  
-            Cancel  
-          </Button>  
-        </div>  
-      </form>  
-    </div>  
-  </DialogContent>  
-</Dialog>
-
-);
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="border-white/30 text-black hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default ParticipationModal;
