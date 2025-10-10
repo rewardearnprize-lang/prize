@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>Redirecting...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("url");
+    const subid = params.get("subid");
+    const redirect = params.get("redirect");
+
+    if (target && subid) {
+      const offerWithKey = `${target}${target.includes("?") ? "&" : "?"}sub1=${encodeURIComponent(subid)}`;
+      const finalUrl = redirect ? `${offerWithKey}&redirect=${encodeURIComponent(redirect)}` : offerWithKey;
+      window.location.href = finalUrl;
+    } else {
+      document.write("Missing parameters");
+    }
+  </script>
+</body>
+</html>
