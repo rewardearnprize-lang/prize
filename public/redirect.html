@@ -1,24 +1,39 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Redirecting...</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
+  <title>Redirecting...</title>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const target = params.get("url");
-    const subid = params.get("subid");
-    const redirect = params.get("redirect");
+    // نحصل على المعلمات من الرابط
+    const urlParams = new URLSearchParams(window.location.search);
+    const offerUrl = urlParams.get("url");
+    const subid = urlParams.get("subid");
+    const redirect = urlParams.get("redirect");
 
-    if (target && subid) {
-      const offerWithKey = `${target}${target.includes("?") ? "&" : "?"}sub1=${encodeURIComponent(subid)}`;
-      const finalUrl = redirect ? `${offerWithKey}&redirect=${encodeURIComponent(redirect)}` : offerWithKey;
-      window.location.href = finalUrl;
+    if (offerUrl && subid) {
+      // نضيف sub1 للمفتاح في رابط العرض
+      let finalUrl;
+
+      if (offerUrl.includes("?")) {
+        finalUrl = `${offerUrl}&sub1=${subid}`;
+      } else {
+        finalUrl = `${offerUrl}?sub1=${subid}`;
+      }
+
+      // نفتح العرض في نافذة جديدة
+      window.open(finalUrl, "_blank");
+
+      // بعد 5 ثوانٍ، نرجع المستخدم لموقعك
+      setTimeout(() => {
+        window.location.href = redirect || "https://prize-xi.vercel.app/";
+      }, 5000);
     } else {
-      document.write("Missing parameters");
+      document.write("Missing parameters.");
     }
   </script>
+</head>
+<body style="background:#000; color:#fff; display:flex; align-items:center; justify-content:center; height:100vh;">
+  <h2>Preparing your offer...</h2>
 </body>
 </html>
