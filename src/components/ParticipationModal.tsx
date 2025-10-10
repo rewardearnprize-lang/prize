@@ -93,14 +93,13 @@ const ParticipationModal = ({
 
       // 3️⃣ فتح رابط العرض + المفتاح في sub1
       if (prize.offerUrl) {
-  const redirectUrl = `https://prize-xi.vercel.app/?success=true&prizeId=${prize.id}&prizeName=${encodeURIComponent(prize.name)}&uid=${encodeURIComponent(uniqueKey)}`;
-
-  const offerRedirect = `https://prize-xi.vercel.app/redirect.html?url=${encodeURIComponent(
-    prize.offerUrl
-  )}&subid=${encodeURIComponent(uniqueKey)}&redirect=${encodeURIComponent(redirectUrl)}`;
-
-  window.location.href = offerRedirect;
-}
+        const offerUrlWithKey = `${prize.offerUrl}${
+          prize.offerUrl.includes("?") ? "&" : "?"
+        }sub1=${uniqueKey}`;
+        window.open(offerUrlWithKey, "_blank");
+      } else {
+        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
+      }
 
       // 4️⃣ إغلاق الديالوج وإشعار المستخدم
       onParticipate(inputValue);
