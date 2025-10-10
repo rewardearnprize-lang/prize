@@ -1,39 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting...</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading offer...</title>
   <script>
-    // نحصل على المعلمات من الرابط
-    const urlParams = new URLSearchParams(window.location.search);
-    const offerUrl = urlParams.get("url");
-    const subid = urlParams.get("subid");
-    const redirect = urlParams.get("redirect");
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const offerUrl = params.get("url");
+      const subid = params.get("subid");
+      const redirect = params.get("redirect");
 
-    if (offerUrl && subid) {
-      // نضيف sub1 للمفتاح في رابط العرض
-      let finalUrl;
-
-      if (offerUrl.includes("?")) {
-        finalUrl = `${offerUrl}&sub1=${subid}`;
-      } else {
-        finalUrl = `${offerUrl}?sub1=${subid}`;
+      if (!offerUrl || !subid) {
+        document.body.innerHTML = "<h2 style='color:white'>Missing parameters</h2>";
+        return;
       }
 
-      // نفتح العرض في نافذة جديدة
+      // 🔹 سجل المفتاح محلياً أو أرسله إلى سيرفرك لتتبعه
+      try {
+        await fetch(`https://ogads-postback.vercel.app/api/pretrack?key=${subid}`);
+      } catch (e) {
+        console.warn("Pretrack error:", e);
+      }
+
+      // 🔹 أضف sub1 للمفتاح في رابط العرض
+      const finalUrl = offerUrl.includes("?")
+        ? `${offerUrl}&sub1=${subid}`
+        : `${offerUrl}?sub1=${subid}`;
+
+      // 🔹 افتح العرض في تبويب جديد (يحتوي على المفتاح)
       window.open(finalUrl, "_blank");
 
-      // بعد 5 ثوانٍ، نرجع المستخدم لموقعك
+      // 🔹 بعد 4 ثوانٍ، أعد المستخدم لموقعك (صفحة النجاح)
       setTimeout(() => {
         window.location.href = redirect || "https://prize-xi.vercel.app/";
-      }, 5000);
-    } else {
-      document.write("Missing parameters.");
-    }
+      }, 4000);
+    })();
   </script>
 </head>
-<body style="background:#000; color:#fff; display:flex; align-items:center; justify-content:center; height:100vh;">
+<body style="background:black; color:white; display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
   <h2>Preparing your offer...</h2>
 </body>
 </html>
