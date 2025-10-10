@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Loader2 } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Loader2, Smartphone, Monitor } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, query, where, setDoc, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
@@ -30,59 +30,6 @@ interface ParticipationModalProps {
   onParticipate: (inputValue: string) => void;
 }
 
-// 🔹 نظام إدارة المشاركات المنفصل
-class ParticipationService {
-  private static instance: ParticipationService;
-  private isProcessing = false;
-  private pendingSubmissions = new Set<string>();
-
-  static getInstance(): ParticipationService {
-    if (!ParticipationService.instance) {
-      ParticipationService.instance = new ParticipationService();
-    }
-    return ParticipationService.instance;
-  }
-
-  // 🔹 توليد مفتاح فريد
-  generateKey(): string {
-    return `key_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-  }
-
-  // 🔹 التحقق من عدم وجود عملية سابقة
-  canSubmit(emailOrId: string, prizeId: string): boolean {
-    const submissionId = `${emailOrId}_${prizeId}`;
-    return !this.pendingSubmissions.has(submissionId) && !this.isProcessing;
-  }
-
-  // 🔹 بدء عملية الإرسال
-  startSubmission(emailOrId: string, prizeId: string): string {
-    const submissionId = `${emailOrId}_${prizeId}`;
-    this.pendingSubmissions.add(submissionId);
-    this.isProcessing = true;
-    return submissionId;
-  }
-
-  // 🔹 إنهاء عملية الإرسال
-  endSubmission(submissionId: string) {
-    this.pendingSubmissions.delete(submissionId);
-    this.isProcessing = false;
-  }
-
-  // 🔹 التحقق من حفظ البيانات في Firebase
-  async verifySave(key: string): Promise<boolean> {
-    try {
-      const docRef = doc(firestore, "participants", key);
-      const docSnap = await getDoc(docRef);
-      return docSnap.exists();
-    } catch (error) {
-      console.error("Verification error:", error);
-      return false;
-    }
-  }
-}
-
-const participationService = ParticipationService.getInstance();
-
 const ParticipationModal = ({
   isOpen,
   onClose,
@@ -92,10 +39,9 @@ const ParticipationModal = ({
   const [inputValue, setInputValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
+  const [savedKey, setSavedKey] = useState("");
   const { toast } = useToast();
-  const submissionRef = useRef<string | null>(null);
 
-  // 🔹 لحساب عدد المشاركين الحاليين
   const fetchJoinedCount = async () => {
     if (!prize) return;
     try {
@@ -116,43 +62,65 @@ const ParticipationModal = ({
       fetchJoinedCount();
       setInputValue("");
       setIsSubmitting(false);
-      submissionRef.current = null;
+      setSavedKey("");
     }
   }, [isOpen, prize]);
 
-  // 🔹 دالة منفصلة ومضمونة للحفظ
-  const saveParticipation = async (key: string, data: any): Promise<boolean> => {
-    try {
-      console.log("💾 Attempting to save with key:", key);
-      
-      // المحاولة الأولى
-      await setDoc(doc(firestore, "participants", key), data);
-      console.log("✅ First save attempt completed");
+  // 🔹 كشف إذا كان الجهاز هاتف
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  };
 
-      // التحقق من الحفظ
-      const isSaved = await participationService.verifySave(key);
+  // 🔹 حفظ المفتاح في localStorage للهاتف
+  const saveKeyForMobile = (key: string) => {
+    localStorage.setItem('lastParticipationKey', key);
+    localStorage.setItem('lastParticipationTime', Date.now().toString());
+    console.log("📱 Key saved for mobile:", key);
+  };
+
+  // 🔹 فتح الرابط مع معالجة خاصة للهاتف
+  const openOfferWithKey = (key: string) => {
+    if (!prize?.offerUrl) return;
+
+    // 🔹 حفظ المفتاح للهاتف
+    if (isMobileDevice()) {
+      saveKeyForMobile(key);
+    }
+
+    // 🔹 بناء الرابط مع المفتاح
+    const offerUrlWithKey = prize.offerUrl.includes('kldool') 
+      ? prize.offerUrl.replace('kldool', `kldool?sub1=${key}`)
+      : `${prize.offerUrl}${prize.offerUrl.includes("?") ? "&" : "?"}sub1=${key}`;
+
+    console.log("🔗 Opening URL:", offerUrlWithKey);
+    
+    if (isMobileDevice()) {
+      // 🔹 للهاتف: فتح في نافذة جديدة ومراقبة الإغلاق
+      const newWindow = window.open(offerUrlWithKey, '_blank', 'noopener,noreferrer');
       
-      if (!isSaved) {
-        // المحاولة الثانية
-        console.log("🔄 First save failed, attempting second save...");
-        await setDoc(doc(firestore, "participants", key), {
-          ...data,
-          retry: true,
-          retryTime: new Date().toISOString()
-        });
-        
-        const secondVerify = await participationService.verifySave(key);
-        if (!secondVerify) {
-          console.error("❌ Both save attempts failed");
-          return false;
-        }
+      if (newWindow) {
+        // مراقبة إذا أغلقت النافذة (يدل على اكتمال العملية)
+        const checkClosed = setInterval(() => {
+          if (newWindow.closed) {
+            clearInterval(checkClosed);
+            console.log("📱 Mobile window closed - offer completed");
+            
+            // فتح الرابط النهائي بعد إكمال العرض
+            setTimeout(() => {
+              const finalUrl = prize.offerUrl!.replace('/i/', '/v/');
+              window.open(finalUrl, '_blank', 'noopener,noreferrer');
+            }, 1000);
+          }
+        }, 1000);
+
+        // تنظيف بعد 30 ثانية
+        setTimeout(() => clearInterval(checkClosed), 30000);
       }
-
-      console.log("🎉 Save verified successfully");
-      return true;
-    } catch (error) {
-      console.error("❌ Save error:", error);
-      return false;
+    } else {
+      // 🔹 للكمبيوتر: فتح بشكل طبيعي
+      window.open(offerUrlWithKey, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -168,24 +136,18 @@ const ParticipationModal = ({
       return;
     }
 
-    // 🔹 منع الإرسال المزدوج
-    if (isSubmitting || !participationService.canSubmit(inputValue.trim(), prize.id)) {
-      console.log("⏳ Submission already in progress, skipping...");
-      return;
-    }
+    if (isSubmitting) return;
 
-    const submissionId = participationService.startSubmission(inputValue.trim(), prize.id);
     setIsSubmitting(true);
-    submissionRef.current = submissionId;
 
     try {
       // 1️⃣ إنشاء مفتاح فريد
-      const uniqueKey = participationService.generateKey();
+      const uniqueKey = `key_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
       console.log("🔑 Generated Key:", uniqueKey);
+      setSavedKey(uniqueKey);
 
-      // 2️⃣ إعداد البيانات
+      // 2️⃣ حفظ البيانات في Firebase
       const participantData = {
-        // الحقول الأساسية
         [prize.participationType || "email"]: inputValue.trim(),
         prize: prize.name,
         prizeId: prize.id,
@@ -193,75 +155,50 @@ const ParticipationModal = ({
         joinDate: new Date().toISOString(),
         verified: false,
         completed: false,
-        
-        // 🔹 تأكيد حفظ الـ key بعدة طرق
         key: uniqueKey,
         participantKey: uniqueKey,
-        uniqueIdentifier: uniqueKey,
-        documentId: uniqueKey,
-        
-        // معلومات إضافية
+        deviceType: isMobileDevice() ? "mobile" : "desktop",
         timestamp: new Date().toISOString(),
-        submissionTime: new Date().toLocaleString(),
-        version: "2.0"
       };
 
-      console.log("📤 Prepared data with key:", uniqueKey);
+      await setDoc(doc(firestore, "participants", uniqueKey), participantData);
+      console.log("✅ Data saved with key:", uniqueKey);
 
-      // 3️⃣ حفظ البيانات مع التحقق
-      const saveSuccess = await saveParticipation(uniqueKey, participantData);
-      
-      if (!saveSuccess) {
-        throw new Error("Failed to save participation data after multiple attempts");
-      }
+      // 3️⃣ فتح الرابط مع المفتاح
+      openOfferWithKey(uniqueKey);
 
-      console.log("✅ FINAL SUCCESS - Key saved:", uniqueKey);
-
-      // 4️⃣ فتح رابط العرض
-      if (prize.offerUrl) {
-        const offerUrlWithKey = prize.offerUrl.includes('kldool') 
-          ? prize.offerUrl.replace('kldool', `kldool?sub1=${uniqueKey}`)
-          : `${prize.offerUrl}${prize.offerUrl.includes("?") ? "&" : "?"}sub1=${uniqueKey}`;
-        
-        console.log("🔗 Opening URL:", offerUrlWithKey);
-        window.open(offerUrlWithKey, "_blank", "noopener,noreferrer");
-      }
-
-      // 5️⃣ إخطار Parent component
+      // 4️⃣ إخطار Parent component
       onParticipate(inputValue.trim());
       
       toast({
-        title: "Successfully Registered 🎉",
-        description: "Your participation has been recorded! Complete the offer to verify.",
+        title: "Success! 🎉",
+        description: isMobileDevice() 
+          ? "Offer opened! Complete it to verify your participation." 
+          : "Your participation has been recorded!",
       });
 
-      // 6️⃣ تنظيف وإغلاق
+      // 5️⃣ إغلاق بعد نجاح العملية
       setTimeout(() => {
         setInputValue("");
         onClose();
-      }, 1000);
+      }, 2000);
 
     } catch (error) {
-      console.error("❌ FINAL ERROR in submission:", error);
-      
+      console.error("❌ Error:", error);
       toast({
-        title: "Registration Failed",
-        description: "Please try again. If problem persists, contact support.",
+        title: "Error",
+        description: "Failed to save participation. Please try again.",
         variant: "destructive",
       });
     } finally {
-      // 🔹 تنظيف الموارد
-      if (submissionRef.current === submissionId) {
-        participationService.endSubmission(submissionId);
-        setIsSubmitting(false);
-        submissionRef.current = null;
-      }
+      setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
     if (!isSubmitting) {
       setInputValue("");
+      setSavedKey("");
       onClose();
     }
   };
@@ -276,6 +213,8 @@ const ParticipationModal = ({
     ? ((prize.maxParticipants - remaining) / prize.maxParticipants) * 100
     : 0;
 
+  const isMobile = isMobileDevice();
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
@@ -288,6 +227,21 @@ const ParticipationModal = ({
               <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
                 Prize Value: {prize.prizeValue || prize.value}
               </Badge>
+              
+              {/* 🔹 إشعار بنوع الجهاز */}
+              <div className="flex items-center justify-center gap-2">
+                {isMobile ? (
+                  <>
+                    <Smartphone className="w-5 h-5 text-blue-400" />
+                    <span className="text-blue-400 text-sm">Mobile Device</span>
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="w-5 h-5 text-green-400" />
+                    <span className="text-green-400 text-sm">Desktop Device</span>
+                  </>
+                )}
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -316,6 +270,34 @@ const ParticipationModal = ({
             </CardContent>
           </Card>
 
+          {savedKey && (
+            <Card className="bg-yellow-500/20 border-yellow-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Badge className="bg-yellow-500 mr-2">Your Key</Badge>
+                    <code className="text-yellow-300 text-sm font-mono">
+                      {savedKey}
+                    </code>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigator.clipboard.writeText(savedKey)}
+                    className="text-yellow-300 border-yellow-300"
+                  >
+                    Copy
+                  </Button>
+                </div>
+                {isMobile && (
+                  <p className="text-yellow-200 text-xs mt-2">
+                    ⚠️ Key saved locally for mobile verification
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-white font-medium mb-2">
@@ -341,39 +323,23 @@ const ParticipationModal = ({
               />
             </div>
 
-            <Card className="bg-blue-500/20 border-blue-500/30">
-              <CardContent className="p-4">
-                <h4 className="text-white font-medium mb-3">
-                  Participation Steps:
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      1
-                    </span>
-                    Enter your {prize.participationType === "id" ? "ID" : "Email"}
+            {/* 🔹 إرشادات خاصة للهاتف */}
+            {isMobile && (
+              <Card className="bg-blue-500/20 border-blue-500/30">
+                <CardContent className="p-4">
+                  <h4 className="text-white font-medium mb-2 flex items-center">
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    Mobile Instructions:
+                  </h4>
+                  <div className="text-sm text-blue-200 space-y-1">
+                    <p>• The offer will open in a new window</p>
+                    <p>• Complete the required steps</p>
+                    <p>• Return to this app after completion</p>
+                    <p>• Your key is saved automatically</p>
                   </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      2
-                    </span>
-                    Complete the required offer
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      3
-                    </span>
-                    Confirm your participation
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      4
-                    </span>
-                    Wait for verification
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex space-x-3">
               <Button
@@ -384,7 +350,7 @@ const ParticipationModal = ({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {isMobile ? "Preparing..." : "Saving..."}
                   </>
                 ) : (
                   <>
