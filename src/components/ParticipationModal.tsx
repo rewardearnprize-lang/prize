@@ -92,13 +92,13 @@ const ParticipationModal = ({
       console.log("✅ Participant added with key:", uniqueKey);
 
       // 3️⃣ فتح رابط العرض + المفتاح في sub1
-      if (selectedPrize.offerUrl) {
-  const offerUrlWithKey = `${selectedPrize.offerUrl}${
-    selectedPrize.offerUrl.includes("?") ? "&" : "?"
-  }sub1=${encodeURIComponent(uid)}`;
-
-  // 🔹 يفتح رابط العرض مباشرة بالمفتاح
-  window.location.href = offerUrlWithKey;
+      if (prize.offerUrl) {
+        const offerUrlWithKey = `${prize.offerUrl}${
+          prize.offerUrl.includes("?") ? "&" : "?"
+        }sub1=${uniqueKey}`;
+        window.open(offerUrlWithKey, "_blank");
+      } else {
+        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
       }
 
       // 4️⃣ إغلاق الديالوج وإشعار المستخدم
