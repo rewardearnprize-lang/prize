@@ -92,18 +92,14 @@ const ParticipationModal = ({
       console.log("✅ Participant added with key:", uniqueKey);
 
       // 3️⃣ فتح رابط العرض + المفتاح في sub1
-// 3️⃣ فتح رابط العرض عبر redirect.html لتجنب التكرار على الهاتف
+// بعد حفظ الـ uniqueKey
 if (prize.offerUrl) {
-  const redirectUrl = `https://prizeapp.netlify.app/?success=true&prizeId=${
-    prize.id
-  }&prizeName=${encodeURIComponent(prize.name)}&uid=${encodeURIComponent(uniqueKey)}`;
-
-  // نوجّه المستخدم إلى صفحة redirect على موقعك
-  const offerRedirect = `https://esnce.unaux.com/redirect.html?url=${encodeURIComponent(
-    prize.offerUrl
-  )}&subid=${encodeURIComponent(uniqueKey)}&redirect=${encodeURIComponent(redirectUrl)}`;
-
-  window.location.href = offerRedirect;
+  // نستخدم subid بدل sub1 إذا الشبكة تستخدم subid
+  const offerUrlWithKey = `${prize.offerUrl}${
+    prize.offerUrl.includes("?") ? "&" : "?"
+  }subid=${encodeURIComponent(uniqueKey)}`;
+  
+  window.location.href = offerUrlWithKey;
 } else {
   console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
 }
