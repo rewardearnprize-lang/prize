@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mail, ExternalLink, Clock, IdCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, where, setDoc, doc, getDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 
 interface ParticipationModalProps {
@@ -30,6 +30,59 @@ interface ParticipationModalProps {
   onParticipate: (inputValue: string) => void;
 }
 
+// 🔹 نظام إدارة المشاركات المنفصل
+class ParticipationService {
+  private static instance: ParticipationService;
+  private isProcessing = false;
+  private pendingSubmissions = new Set<string>();
+
+  static getInstance(): ParticipationService {
+    if (!ParticipationService.instance) {
+      ParticipationService.instance = new ParticipationService();
+    }
+    return ParticipationService.instance;
+  }
+
+  // 🔹 توليد مفتاح فريد
+  generateKey(): string {
+    return `key_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  }
+
+  // 🔹 التحقق من عدم وجود عملية سابقة
+  canSubmit(emailOrId: string, prizeId: string): boolean {
+    const submissionId = `${emailOrId}_${prizeId}`;
+    return !this.pendingSubmissions.has(submissionId) && !this.isProcessing;
+  }
+
+  // 🔹 بدء عملية الإرسال
+  startSubmission(emailOrId: string, prizeId: string): string {
+    const submissionId = `${emailOrId}_${prizeId}`;
+    this.pendingSubmissions.add(submissionId);
+    this.isProcessing = true;
+    return submissionId;
+  }
+
+  // 🔹 إنهاء عملية الإرسال
+  endSubmission(submissionId: string) {
+    this.pendingSubmissions.delete(submissionId);
+    this.isProcessing = false;
+  }
+
+  // 🔹 التحقق من حفظ البيانات في Firebase
+  async verifySave(key: string): Promise<boolean> {
+    try {
+      const docRef = doc(firestore, "participants", key);
+      const docSnap = await getDoc(docRef);
+      return docSnap.exists();
+    } catch (error) {
+      console.error("Verification error:", error);
+      return false;
+    }
+  }
+}
+
+const participationService = ParticipationService.getInstance();
+
 const ParticipationModal = ({
   isOpen,
   onClose,
@@ -40,36 +93,69 @@ const ParticipationModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
+  const submissionRef = useRef<string | null>(null);
 
   // 🔹 لحساب عدد المشاركين الحاليين
   const fetchJoinedCount = async () => {
     if (!prize) return;
-    const q = query(
-      collection(firestore, "participants"),
-      where("prizeId", "==", prize.id),
-      where("verified", "==", true)
-    );
-    const snap = await getDocs(q);
-    setJoinedCount(snap.size);
+    try {
+      const q = query(
+        collection(firestore, "participants"),
+        where("prizeId", "==", prize.id),
+        where("verified", "==", true)
+      );
+      const snap = await getDocs(q);
+      setJoinedCount(snap.size);
+    } catch (error) {
+      console.error("Error fetching count:", error);
+    }
   };
 
   useEffect(() => {
     if (isOpen && prize) {
       fetchJoinedCount();
-      // إعادة تعيين الحالة عند فتح الـ modal
       setInputValue("");
       setIsSubmitting(false);
+      submissionRef.current = null;
     }
   }, [isOpen, prize]);
 
-  // ✅ دالة محسنة لتوليد مفتاح فريد
-  const generateUniqueKey = () => {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 15);
-    return `key_${timestamp}_${random}`;
+  // 🔹 دالة منفصلة ومضمونة للحفظ
+  const saveParticipation = async (key: string, data: any): Promise<boolean> => {
+    try {
+      console.log("💾 Attempting to save with key:", key);
+      
+      // المحاولة الأولى
+      await setDoc(doc(firestore, "participants", key), data);
+      console.log("✅ First save attempt completed");
+
+      // التحقق من الحفظ
+      const isSaved = await participationService.verifySave(key);
+      
+      if (!isSaved) {
+        // المحاولة الثانية
+        console.log("🔄 First save failed, attempting second save...");
+        await setDoc(doc(firestore, "participants", key), {
+          ...data,
+          retry: true,
+          retryTime: new Date().toISOString()
+        });
+        
+        const secondVerify = await participationService.verifySave(key);
+        if (!secondVerify) {
+          console.error("❌ Both save attempts failed");
+          return false;
+        }
+      }
+
+      console.log("🎉 Save verified successfully");
+      return true;
+    } catch (error) {
+      console.error("❌ Save error:", error);
+      return false;
+    }
   };
 
-  // ✅ عند ضغط "Participate Now"
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -83,17 +169,23 @@ const ParticipationModal = ({
     }
 
     // 🔹 منع الإرسال المزدوج
-    if (isSubmitting) return;
-    
+    if (isSubmitting || !participationService.canSubmit(inputValue.trim(), prize.id)) {
+      console.log("⏳ Submission already in progress, skipping...");
+      return;
+    }
+
+    const submissionId = participationService.startSubmission(inputValue.trim(), prize.id);
     setIsSubmitting(true);
+    submissionRef.current = submissionId;
 
     try {
       // 1️⃣ إنشاء مفتاح فريد
-      const uniqueKey = generateUniqueKey();
+      const uniqueKey = participationService.generateKey();
       console.log("🔑 Generated Key:", uniqueKey);
 
-      // 2️⃣ إعداد البيانات بشكل كامل قبل الحفظ
+      // 2️⃣ إعداد البيانات
       const participantData = {
+        // الحقول الأساسية
         [prize.participationType || "email"]: inputValue.trim(),
         prize: prize.name,
         prizeId: prize.id,
@@ -101,86 +193,69 @@ const ParticipationModal = ({
         joinDate: new Date().toISOString(),
         verified: false,
         completed: false,
+        
+        // 🔹 تأكيد حفظ الـ key بعدة طرق
         key: uniqueKey,
-        timestamp: new Date().toISOString(),
-        // 🔹 إضافة حقول إضافية للتأكيد
+        participantKey: uniqueKey,
         uniqueIdentifier: uniqueKey,
-        submissionTime: new Date().toLocaleString()
+        documentId: uniqueKey,
+        
+        // معلومات إضافية
+        timestamp: new Date().toISOString(),
+        submissionTime: new Date().toLocaleString(),
+        version: "2.0"
       };
 
-      console.log("📤 Saving participant data:", participantData);
+      console.log("📤 Prepared data with key:", uniqueKey);
 
-      // 3️⃣ حفظ البيانات في Firestore
-      await setDoc(doc(firestore, "participants", uniqueKey), participantData);
+      // 3️⃣ حفظ البيانات مع التحقق
+      const saveSuccess = await saveParticipation(uniqueKey, participantData);
       
-      console.log("✅ Participant added with key:", uniqueKey);
-
-      // 4️⃣ فتح رابط العرض + المفتاح في sub1
-      if (prize.offerUrl) {
-        // 🔹 بناء الرابط بشكل صحيح
-        let offerUrlWithKey;
-        if (prize.offerUrl.includes('kldool')) {
-          // إذا كان الرابط يحتوي على kldool، أضف sub1 بشكل صحيح
-          offerUrlWithKey = prize.offerUrl.replace(
-            'kldool', 
-            `kldool?sub1=${uniqueKey}`
-          );
-        } else {
-          // للروابط الأخرى
-          offerUrlWithKey = `${prize.offerUrl}${
-            prize.offerUrl.includes("?") ? "&" : "?"
-          }sub1=${uniqueKey}`;
-        }
-        
-        console.log("🔗 Opening offer link:", offerUrlWithKey);
-        window.open(offerUrlWithKey, "_blank", "noopener,noreferrer");
-      } else {
-        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
+      if (!saveSuccess) {
+        throw new Error("Failed to save participation data after multiple attempts");
       }
 
-      // 5️⃣ إغلاق الديالوج وإشعار المستخدم
+      console.log("✅ FINAL SUCCESS - Key saved:", uniqueKey);
+
+      // 4️⃣ فتح رابط العرض
+      if (prize.offerUrl) {
+        const offerUrlWithKey = prize.offerUrl.includes('kldool') 
+          ? prize.offerUrl.replace('kldool', `kldool?sub1=${uniqueKey}`)
+          : `${prize.offerUrl}${prize.offerUrl.includes("?") ? "&" : "?"}sub1=${uniqueKey}`;
+        
+        console.log("🔗 Opening URL:", offerUrlWithKey);
+        window.open(offerUrlWithKey, "_blank", "noopener,noreferrer");
+      }
+
+      // 5️⃣ إخطار Parent component
       onParticipate(inputValue.trim());
       
       toast({
-        title: "Participation Registered 🎉",
-        description: "You have been registered successfully! Complete the offer to verify.",
+        title: "Successfully Registered 🎉",
+        description: "Your participation has been recorded! Complete the offer to verify.",
       });
 
-      // 6️⃣ إعادة تعيين وإغلاق بعد نجاح العملية
+      // 6️⃣ تنظيف وإغلاق
       setTimeout(() => {
         setInputValue("");
         onClose();
-      }, 1500);
+      }, 1000);
 
     } catch (error) {
-      console.error("❌ Error adding participation:", error);
+      console.error("❌ FINAL ERROR in submission:", error);
       
-      // 🔹 محاولة حفظ بديلة
-      try {
-        console.log("🔄 Attempting backup save...");
-        const backupKey = `backup_${generateUniqueKey()}`;
-        const backupData = {
-          emailOrId: inputValue.trim(),
-          prize: prize.name,
-          prizeId: prize.id,
-          error: error instanceof Error ? error.message : "Unknown error",
-          timestamp: new Date().toISOString(),
-          originalKey: uniqueKey
-        };
-        
-        await setDoc(doc(firestore, "participation_errors", backupKey), backupData);
-        console.log("📦 Backup save completed");
-      } catch (backupError) {
-        console.error("❌ Backup save also failed:", backupError);
-      }
-
       toast({
-        title: "Error",
-        description: "There was an error registering your participation. Please try again.",
+        title: "Registration Failed",
+        description: "Please try again. If problem persists, contact support.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      // 🔹 تنظيف الموارد
+      if (submissionRef.current === submissionId) {
+        participationService.endSubmission(submissionId);
+        setIsSubmitting(false);
+        submissionRef.current = null;
+      }
     }
   };
 
@@ -241,7 +316,6 @@ const ParticipationModal = ({
             </CardContent>
           </Card>
 
-          {/* 🔹 تغيير مهم: استخدام form حقيقي مع button type="submit" */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-white font-medium mb-2">
@@ -277,9 +351,8 @@ const ParticipationModal = ({
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       1
                     </span>
-                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
+                    Enter your {prize.participationType === "id" ? "ID" : "Email"}
                   </div>
-
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       2
@@ -290,20 +363,19 @@ const ParticipationModal = ({
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       3
                     </span>
-                    Confirm your {prize.participationType === "id" ? "ID" : "Email"} again
+                    Confirm your participation
                   </div>
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       4
                     </span>
-                    Wait for participation confirmation
+                    Wait for verification
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <div className="flex space-x-3">
-              {/* 🔹 تغيير مهم: استخدام type="submit" */}
               <Button
                 type="submit"
                 className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
@@ -312,7 +384,7 @@ const ParticipationModal = ({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
+                    Saving...
                   </>
                 ) : (
                   <>
