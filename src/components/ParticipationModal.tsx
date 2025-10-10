@@ -93,11 +93,21 @@ const ParticipationModal = ({
 
       // 3️⃣ فتح رابط العرض + المفتاح في sub1
       if (prize.offerUrl) {
-        const offerUrlWithKey = `${prize.offerUrl}${
-          prize.offerUrl.includes("?") ? "&" : "?"
-        }sub1=${uniqueKey}`;
-        window.open(offerUrlWithKey, "_blank");
-      } else {
+  let offerUrlWithKey = `${prize.offerUrl}${
+    prize.offerUrl.includes("?") ? "&" : "?"
+  }sub1=${uniqueKey}`;
+
+  // 🔹 كشف الهاتف
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
+
+  // 🔹 تعديل i → v على الهاتف
+  if (isMobile) {
+    offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
+  }
+
+  window.open(offerUrlWithKey, "_blank");
+    } else {
         console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
       }
 
