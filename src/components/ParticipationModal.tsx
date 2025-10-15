@@ -260,24 +260,27 @@ if (prize.offerUrl) {
     e.preventDefault();
     if (isSubmitting || !prize) return;
 
-    // ✅ نفتح الرابط أولًا فور الضغط (Safari-friendly)
+    // إنشاء مفتاح فريد
     const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-    let offerUrlWithKey = `${prize.offerUrl}${
+    // إنشاء الرابط مع aff_sub4 و aff_sub5
+    let offerUrlWithKeys = `${prize.offerUrl}${
       prize.offerUrl.includes("?") ? "&" : "?"
-    }aff_sub4=${uniqueKey}`;
+    }aff_sub4=${uniqueKey}&aff_sub5=${uniqueKey}`;
 
+    // الكشف عن نوع الجهاز (موبايل أو كمبيوتر)
     const ua = navigator.userAgent || navigator.vendor || window.opera;
     const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
 
+    // تعديل المسار إذا كان موبايل (OGAds يستخدم /v/ للهواتف)
     if (isMobile) {
-      offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
+      offerUrlWithKeys = offerUrlWithKeys.replace("/cl/i/", "/cl/v/");
     }
 
-    // نفتح الرابط مباشرة قبل أي async
-    window.location.href = offerUrlWithKey;
+    // فتح الرابط مباشرة قبل أي async (حتى يعمل على Safari)
+    window.location.href = offerUrlWithKeys;
 
-    // نحفظ المشاركة في الخلفية (بدون انتظار)
+    // إرسال المشاركة في الخلفية (لتخزينها في Firestore مثلاً)
     handleSubmit(e);
   }}
   className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
