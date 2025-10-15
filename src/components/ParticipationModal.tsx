@@ -91,27 +91,28 @@ const ParticipationModal = ({
 
       console.log("✅ Participant added with key:", uniqueKey);
 
-      // 3️⃣ فتح رابط العرض + المفتاح في sub1
-      if (prize.offerUrl) {
-  // ✅ إنشاء الرابط مع aff_sub4 (وهو ما يدعمه OGAds)
+// 3️⃣ فتح رابط العرض + المفتاح في aff_sub4
+if (prize.offerUrl) {
   let offerUrlWithKey = `${prize.offerUrl}${
     prize.offerUrl.includes("?") ? "&" : "?"
   }aff_sub4=${uniqueKey}`;
 
-  // 🔍 كشف ما إذا كان المستخدم على الهاتف
   const ua = navigator.userAgent || navigator.vendor || window.opera;
   const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
 
-  // 📱 إذا كان على الهاتف، غيّر /cl/i/ إلى /cl/v/
   if (isMobile) {
     offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
   }
 
-  // 🚀 فتح العرض في نافذة جديدة
-  window.open(offerUrlWithKey, "_blank");
+  // ✅ Safari fix — نفتح التبويب أولًا قبل await
+  const newTab = window.open("about:blank", "_blank");
+
+  setTimeout(() => {
+    newTab.location.href = offerUrlWithKey;
+  }, 100);
 } else {
   console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
-      }
+}
 
       // 4️⃣ إغلاق الديالوج وإشعار المستخدم
       onParticipate(inputValue);
