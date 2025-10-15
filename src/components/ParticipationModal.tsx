@@ -255,14 +255,36 @@ if (prize.offerUrl) {
 
             <div className="flex space-x-3">
               <Button
-                type="button"
-      onClick={handleSubmit}
-                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
-                disabled={isSubmitting}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                {isSubmitting ? "Processing..." : "Participate Now"}
-              </Button>
+  type="submit"
+  onClick={(e) => {
+    e.preventDefault();
+    if (isSubmitting || !prize) return;
+
+    // ✅ نفتح الرابط أولًا فور الضغط (Safari-friendly)
+    const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+    let offerUrlWithKey = `${prize.offerUrl}${
+      prize.offerUrl.includes("?") ? "&" : "?"
+    }aff_sub4=${uniqueKey}`;
+
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
+
+    if (isMobile) {
+      offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
+    }
+
+    // نفتح الرابط مباشرة قبل أي async
+    window.location.href = offerUrlWithKey;
+
+    // نحفظ المشاركة في الخلفية (بدون انتظار)
+    handleSubmit(e);
+  }}
+  className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+>
+  <ExternalLink className="w-4 h-4 mr-2" />
+  {isSubmitting ? "Processing..." : "Participate Now"}
+</Button>
 
               <Button
                 type="button"
