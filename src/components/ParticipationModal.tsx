@@ -95,7 +95,7 @@ const ParticipationModal = ({
       if (prize.offerUrl) {
   let offerUrlWithKey = `${prize.offerUrl}${
     prize.offerUrl.includes("?") ? "&" : "?"
-  aaff_sub4aff_sub4=${uniqueKey}`;
+  aff_sub4=${uniqueKey}`;
 
   // 🔹 كشف الهاتف
   const ua = navigator.userAgent || navigator.vendor || window.opera;
