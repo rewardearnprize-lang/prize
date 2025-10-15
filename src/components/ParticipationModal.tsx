@@ -93,22 +93,24 @@ const ParticipationModal = ({
 
       // 3️⃣ فتح رابط العرض + المفتاح في sub1
       if (prize.offerUrl) {
+  // ✅ إنشاء الرابط مع aff_sub4 (وهو ما يدعمه OGAds)
   let offerUrlWithKey = `${prize.offerUrl}${
     prize.offerUrl.includes("?") ? "&" : "?"
-  aff_sub4=${uniqueKey}`;
+  }aff_sub4=${uniqueKey}`;
 
-  // 🔹 كشف الهاتف
+  // 🔍 كشف ما إذا كان المستخدم على الهاتف
   const ua = navigator.userAgent || navigator.vendor || window.opera;
   const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
 
-  // 🔹 تعديل i → v على الهاتف
+  // 📱 إذا كان على الهاتف، غيّر /cl/i/ إلى /cl/v/
   if (isMobile) {
     offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
   }
 
+  // 🚀 فتح العرض في نافذة جديدة
   window.open(offerUrlWithKey, "_blank");
-    } else {
-        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
+} else {
+  console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
       }
 
       // 4️⃣ إغلاق الديالوج وإشعار المستخدم
