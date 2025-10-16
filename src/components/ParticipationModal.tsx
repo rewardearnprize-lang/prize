@@ -230,38 +230,32 @@ const ParticipationModal = ({
             </div>
 
             <Card className="bg-blue-500/20 border-blue-500/30">
-              <CardContent className="p-4">
-                <h4 className="text-white font-medium mb-3">
-                  Participation Steps:
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      1
-                    </span>
-                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      2
-                    </span>
-                    Complete the required offer
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      3
-                    </span>
-                    Confirm your {prize.participationType === "id" ? "ID" : "Email"} again
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      4
-                    </span>
-                    Wait for participation confirmation
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+  <CardContent className="p-4">
+    <h4 className="text-white font-medium mb-3">
+      Participation Steps:
+    </h4>
+    <div className="space-y-2 text-sm">
+      <div className="flex items-center text-gray-300">
+        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+          1
+        </span>
+        Enter your {prize.participationType === "id" ? "ID" : "Email"} address
+      </div>
+      <div className="flex items-center text-gray-300">
+        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+          2
+        </span>
+        Complete the required offer
+      </div>
+      <div className="flex items-center text-gray-300">
+        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+          3
+        </span>
+        Wait for the draw results
+      </div>
+    </div>
+  </CardContent>
+</Card>
 
             <div className="flex space-x-3">
               <Button
