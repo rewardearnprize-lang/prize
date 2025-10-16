@@ -41,7 +41,7 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 لحساب عدد المشاركين الحاليين
+  // 🔹 لجلب عدد المشاركين الحاليين
   const fetchJoinedCount = async () => {
     if (!prize) return;
     try {
@@ -63,7 +63,7 @@ const ParticipationModal = ({
     }
   }, [isOpen, prize]);
 
-  // ✅ عند ضغط "Participate Now"
+  // ✅ عند الضغط على "Participate Now"
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue || !prize) {
@@ -75,7 +75,6 @@ const ParticipationModal = ({
       return;
     }
 
-    // منع الضغط المتكرر
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -98,45 +97,42 @@ const ParticipationModal = ({
 
       console.log("✅ Participant added with key:", uniqueKey);
 
-      // 3️⃣ فتح رابط العرض مع aff_sub4 فقط (نستخدم نفس المفتاح)
+      // 3️⃣ فتح رابط العرض مع aff_sub4 و aff_sub5
       if (prize.offerUrl) {
-        let offerUrlWithKey = `${prize.offerUrl}${
+        // نضيف كل من المفتاح والبريد
+        let offerUrlWithParams = `${prize.offerUrl}${
           prize.offerUrl.includes("?") ? "&" : "?"
-        }aff_sub4=${encodeURIComponent(uniqueKey)}`;
+        }aff_sub4=${encodeURIComponent(uniqueKey)}&aff_sub5=${encodeURIComponent(inputValue)}`;
 
-        // الكشف عن نوع الجهاز (موبايل أو كمبيوتر)
+        // الكشف عن نوع الجهاز
         const ua = navigator.userAgent || (navigator as any).vendor || (window as any).opera;
         const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
 
         // تعديل المسار إذا كان موبايل (OGAds يستخدم /v/ للهواتف)
         if (isMobile) {
-          offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
+          offerUrlWithParams = offerUrlWithParams.replace("/cl/i/", "/cl/v/");
         }
 
-        // ✅ Safari fix — نفتح التبويب أولاً حتى لا يحظر popup، ثم نغيّر الموقع
-        // نفتح 'about:blank' حتى نحتفظ بالتبويب ونستطيع توجيهه بعد الانتهاء من الـ async.
+        // فتح الرابط بطريقة آمنة (لتجنب حظر popup)
         const newTab = window.open("about:blank", "_blank");
 
-        // في بعض البيئات newTab قد يكون null — نفحص قبل الاستخدام
         if (newTab) {
           setTimeout(() => {
             try {
-              newTab.location.href = offerUrlWithKey;
+              newTab.location.href = offerUrlWithParams;
             } catch (err) {
-              // في حالات القواعد الأمنية قد يفشل cross-origin assignment، فنجرب تغيير window.location
-              console.warn("Could not set newTab.location.href, falling back to window.location:", err);
-              window.location.href = offerUrlWithKey;
+              console.warn("Could not set newTab.location.href:", err);
+              window.location.href = offerUrlWithParams;
             }
           }, 100);
         } else {
-          // فشل الفتح (محجوب)، نستخدم window.location كبديل
-          window.location.href = offerUrlWithKey;
+          window.location.href = offerUrlWithParams;
         }
       } else {
         console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
       }
 
-      // 4️⃣ إغلاق المودال وإعلام المستخدم
+      // 4️⃣ إغلاق المودال وإظهار تنبيه
       onParticipate(inputValue);
       setInputValue("");
       onClose();
@@ -245,7 +241,6 @@ const ParticipationModal = ({
                     </span>
                     Enter your {prize.participationType === "id" ? "ID" : "Email"} address
                   </div>
-
                   <div className="flex items-center text-gray-300">
                     <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
                       2
