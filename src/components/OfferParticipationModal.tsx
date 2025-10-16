@@ -1,3 +1,6 @@
+الموقع مبنى على فكره دخول سحب 
+
+
 import { useState } from "react";
 import {
   Dialog,
@@ -9,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink } from "lucide-react";
+import { Mail, ExternalLink, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { firestore } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -35,27 +38,6 @@ const OfferParticipationModal = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // ✅ دالة توليد مفتاح بنفس تنسيق Firebase key
-  const generateFirebaseKey = () => {
-    const PUSH_CHARS =
-      "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
-    let now = new Date().getTime();
-    let timeStampChars = new Array(8);
-
-    for (let i = 7; i >= 0; i--) {
-      timeStampChars[i] = PUSH_CHARS.charAt(now % 64);
-      now = Math.floor(now / 64);
-    }
-
-    let id = timeStampChars.join("");
-
-    for (let i = 0; i < 12; i++) {
-      id += PUSH_CHARS.charAt(Math.floor(Math.random() * 64));
-    }
-
-    return "key_" + id;
-  };
-
   const normalizeUrl = (url: string) => {
     if (!/^https?:\/\//i.test(url)) {
       return "https://" + url;
@@ -80,18 +62,7 @@ const OfferParticipationModal = ({
       });
     }
 
-    // ✅ توليد مفاتيح aff_sub4 و aff_sub5
-    const affSub4 = generateFirebaseKey();
-    const affSub5 = inputValue;
-
-    // ✅ تجهيز الرابط النهائي
-    const baseUrl = normalizeUrl(offerLink);
-    const separator = baseUrl.includes("?") ? "&" : "?";
-    const finalLink = `${baseUrl}${separator}aff_sub4=${affSub4}&aff_sub5=${encodeURIComponent(
-      affSub5
-    )}`;
-
-    // ✅ فتح الرابط على جميع الأجهزة
+    const finalLink = normalizeUrl(offerLink);
     window.open(finalLink, "_blank");
 
     setLoading(true);
@@ -101,14 +72,11 @@ const OfferParticipationModal = ({
         "participants",
         inputValue + "_" + offerId
       );
-
       await setDoc(participantRef, {
         [participationType]: inputValue,
         offerId,
         offerTitle,
         offerurl: finalLink,
-        aff_sub4: affSub4,
-        aff_sub5: affSub5,
         status: "completed",
         timestamp: serverTimestamp(),
       });
@@ -117,7 +85,6 @@ const OfferParticipationModal = ({
         title: "Participation submitted successfully 🎉",
         variant: "default",
       });
-
       onClose();
       setInputValue("");
     } catch (error) {
@@ -150,6 +117,8 @@ const OfferParticipationModal = ({
         </DialogHeader>
 
         <div className="space-y-6">
+
+
           <div>
             <label className="block text-white font-medium mb-2">
               <Mail className="w-4 h-4 inline mr-2" />
@@ -174,10 +143,33 @@ const OfferParticipationModal = ({
               <h4 className="text-white font-medium mb-3">
                 Participation Steps:
               </h4>
-              <div className="space-y-2 text-sm text-gray-300">
-                <div>1️⃣ Enter your {participationType}</div>
-                <div>2️⃣ Complete the required offer</div>
-                <div>3️⃣ Wait for confirmation</div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    1
+                  </span>
+                  Enter your {participationType === "email" ? "Email" : "ID"}
+                </div>
+
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    2
+                  </span>
+                  Complete the required offer
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    3
+                  </span>
+                  Confirm your{" "}
+                  {participationType === "email" ? "Email" : "ID"} again
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    4
+                  </span>
+                  Wait for participation confirmation
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -207,4 +199,4 @@ const OfferParticipationModal = ({
   );
 };
 
-export default OfferParticipationModal;
+export default OfferParticipationModal; 
