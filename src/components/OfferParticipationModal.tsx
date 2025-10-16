@@ -1,6 +1,3 @@
-الموقع مبنى على فكره دخول سحب 
-
-
 import { useState } from "react";
 import {
   Dialog,
