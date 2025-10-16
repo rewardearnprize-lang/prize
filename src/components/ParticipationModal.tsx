@@ -74,7 +74,7 @@ const ParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      // 1️⃣ إنشاء مفتاح فريد
+      // 1️⃣ إنشاء مفتاح واحد فقط
       const uniqueKey =
         "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
@@ -91,30 +91,29 @@ const ParticipationModal = ({
 
       console.log("✅ Participant added with key:", uniqueKey);
 
-// 3️⃣ فتح رابط العرض + المفتاح في aff_sub4
-if (prize.offerUrl) {
-  let offerUrlWithKey = `${prize.offerUrl}${
-    prize.offerUrl.includes("?") ? "&" : "?"
-  }aff_sub4=${uniqueKey}`;
+      // 3️⃣ فتح رابط العرض مع aff_sub4 فقط
+      if (prize.offerUrl) {
+        let offerUrlWithKey = `${prize.offerUrl}${
+          prize.offerUrl.includes("?") ? "&" : "?"
+        }aff_sub4=${uniqueKey}`;
 
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
-  const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
 
-  if (isMobile) {
-    offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
-  }
+        if (isMobile) {
+          offerUrlWithKey = offerUrlWithKey.replace("/cl/i/", "/cl/v/");
+        }
 
-  // ✅ Safari fix — نفتح التبويب أولًا قبل await
-  const newTab = window.open("about:blank", "_blank");
+        // ✅ Safari fix — افتح التبويب أولاً
+        const newTab = window.open("about:blank", "_blank");
+        setTimeout(() => {
+          newTab.location.href = offerUrlWithKey;
+        }, 100);
+      } else {
+        console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
+      }
 
-  setTimeout(() => {
-    newTab.location.href = offerUrlWithKey;
-  }, 100);
-} else {
-  console.warn("⚠️ لا يوجد offerUrl في هذا العرض");
-}
-
-      // 4️⃣ إغلاق الديالوج وإشعار المستخدم
+      // 4️⃣ إغلاق المودال بعد التسجيل
       onParticipate(inputValue);
       setInputValue("");
       onClose();
@@ -188,13 +187,8 @@ if (prize.offerUrl) {
               </div>
             </CardContent>
           </Card>
-<form
-  onSubmit={(e) => {
-    e.preventDefault();
-    if (!isSubmitting) handleSubmit(e);
-  }}
-  className="space-y-4"
->
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-white font-medium mb-2">
                 {prize.participationType === "id" ? (
@@ -218,76 +212,15 @@ if (prize.offerUrl) {
               />
             </div>
 
-            <Card className="bg-blue-500/20 border-blue-500/30">
-              <CardContent className="p-4">
-                <h4 className="text-white font-medium mb-3">
-                  Participation Steps:
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      1
-                    </span>
-                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
-                  </div>
-
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      2
-                    </span>
-                    Complete the required offer
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      3
-                    </span>
-                    Confirm your {prize.participationType === "id" ? "ID" : "Email"} again
-                  </div>
-                  <div className="flex items-center text-gray-300">
-                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                      4
-                    </span>
-                    Wait for participation confirmation
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <div className="flex space-x-3">
               <Button
-  type="submit"
-  onClick={(e) => {
-    e.preventDefault();
-    if (isSubmitting || !prize) return;
-
-    // إنشاء مفتاح فريد
-    const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-
-    // إنشاء الرابط مع aff_sub4 و aff_sub5
-    let offerUrlWithKeys = `${prize.offerUrl}${
-      prize.offerUrl.includes("?") ? "&" : "?"
-    }aff_sub4=${uniqueKey}&aff_sub5=${uniqueKey}`;
-
-    // الكشف عن نوع الجهاز (موبايل أو كمبيوتر)
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
-    const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
-
-    // تعديل المسار إذا كان موبايل (OGAds يستخدم /v/ للهواتف)
-    if (isMobile) {
-      offerUrlWithKeys = offerUrlWithKeys.replace("/cl/i/", "/cl/v/");
-    }
-
-    // فتح الرابط مباشرة قبل أي async (حتى يعمل على Safari)
-    window.location.href = offerUrlWithKeys;
-
-    // إرسال المشاركة في الخلفية (لتخزينها في Firestore مثلاً)
-    handleSubmit(e);
-  }}
-  className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
->
-  <ExternalLink className="w-4 h-4 mr-2" />
-  {isSubmitting ? "Processing..." : "Participate Now"}
-</Button>
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {isSubmitting ? "Processing..." : "Participate Now"}
+              </Button>
 
               <Button
                 type="button"
