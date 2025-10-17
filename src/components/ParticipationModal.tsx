@@ -171,35 +171,24 @@ const ParticipationModal = ({
         <DialogHeader>
           <DialogTitle className="text-center">
             <div className="space-y-4">
-             // بديل أكثر تطوراً مع صورة بديلة
-{imageUrl ? (
-  <div className="flex justify-center">
-    <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg bg-gray-800 flex items-center justify-center">
-      <img 
-        src={imageUrl} 
-        alt={prize.name}
-        className="w-full h-full object-cover"
-        onError={(e) => {
-          // إذا فشل تحميل الصورة، عرض أيقونة بديلة
-          e.currentTarget.style.display = 'none';
-          const parent = e.currentTarget.parentElement;
-          if (parent) {
-            const fallback = document.createElement('div');
-            fallback.className = 'flex items-center justify-center w-full h-full';
-            fallback.innerHTML = '<ImageIcon className="w-12 h-12 text-gray-400" />';
-            parent.appendChild(fallback);
-          }
-        }}
-      />
-    </div>
-  </div>
-) : (
-  <div className="flex justify-center">
-    <div className="w-32 h-32 rounded-lg border-2 border-white/20 bg-gray-800 flex items-center justify-center">
-      <ImageIcon className="w-12 h-12 text-gray-400" />
-    </div>
-  </div>
-)}
+              {/* عرض الصورة إذا كانت موجودة */}
+              {imageUrl ? (
+                <div className="flex justify-center">
+                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
+                    <img 
+                      src={imageUrl} 
+                      alt={prize.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // إذا فشل تحميل الصورة، عرض أيقونة بديلة
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-4xl">🎁</div>
+              )}
               
               <h2 className="text-2xl font-bold text-white">Enter the Draw</h2>
               <p className="text-lg text-gray-300">{prize.name}</p>
