@@ -152,19 +152,20 @@ const handleRandomDraw = async () => {
   };
 
   const handleAddDraw = async () => {
-    if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
-      toast({
-        title: "خطأ",
-        description: "يرجى ملء البيانات المطلوبة",
-        variant: "destructive",
-      });
-      return;
-    }
-    try {
-    // رفع الصورة إلى Firebase Storage (إن وجدت)
+  if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
+    toast({
+      title: "خطأ",
+      description: "يرجى ملء البيانات المطلوبة",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    // ✅ رفع الصورة إلى Firebase Storage
     let imageUrl = "";
-    // newDraw.imageFile قد لا تكون معرفة إن لم تضفها للحالة — لذلك نفحص بحذر
     const file: File | null | undefined = (newDraw as any).imageFile;
+
     if (file) {
       const storage = getStorage();
       const filename = `${Date.now()}_${file.name}`;
@@ -173,6 +174,7 @@ const handleRandomDraw = async () => {
       imageUrl = await getDownloadURL(storageRef);
     }
 
+    // ✅ بيانات السحب الجديدة
     const drawData = {
       name: newDraw.name,
       description: newDraw.description,
@@ -186,11 +188,13 @@ const handleRandomDraw = async () => {
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      image: imageUrl, // ✅ رابط الصورة
+      image: imageUrl,
     };
 
     const result = await dispatch(addDraw(drawData));
+
     if (addDraw.fulfilled.match(result)) {
+      // ✅ إعادة تهيئة القيم بعد الإضافة
       setNewDraw({
         id: "",
         name: "",
@@ -207,19 +211,25 @@ const handleRandomDraw = async () => {
         offerUrl: "",
         offerId: "",
         participationType: "email",
-         imageFile: null, // تأكد من وجود هذا الحقل في state
+        imageFile: null,
       });
       setShowAddDrawDialog(false);
       toast({
         title: "تم إضافة السحب",
         description: "تمت إضافة السحب الجديد بنجاح",
       });
+    } else {
+      toast({
+        title: "خطأ",
+        description: "تعذر إضافة السحب. حاول مرة أخرى.",
+        variant: "destructive",
+      });
     }
   } catch (error) {
-    console.error("خطأ أثناء رفع السحب:", error);
+    console.error("handleAddDraw error:", error);
     toast({
       title: "حدث خطأ",
-      description: "تعذر إضافة السحب. حاول مرة أخرى.",
+      description: "تعذر إكمال عملية الإضافة. تأكد من إعداد Firebase Storage.",
       variant: "destructive",
     });
   }
