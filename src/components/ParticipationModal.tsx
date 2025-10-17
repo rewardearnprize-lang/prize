@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -21,6 +21,7 @@ interface ParticipationModalProps {
     id: string;
     name: string;
     image?: string;
+    imageUrl?: string; // أضفت هذا الحقل
     prizeValue?: number;
     value?: string;
     maxParticipants?: number;
@@ -41,7 +42,7 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 لجلب عدد المشاركين الحاليين الان
+  // 🔹 لجلب عدد المشاركين الحاليين
   const fetchJoinedCount = async () => {
     if (!prize) return;
     try {
@@ -161,13 +162,34 @@ const ParticipationModal = ({
     ? prize.maxParticipants - joinedCount
     : 0;
 
+  // الحصول على رابط الصورة (الأولوية لـ imageUrl ثم image)
+  const imageUrl = prize.imageUrl || prize.image;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
         <DialogHeader>
           <DialogTitle className="text-center">
             <div className="space-y-4">
-              <div className="text-4xl">{prize.image || "🎁"}</div>
+              {/* عرض الصورة إذا كانت موجودة */}
+              {imageUrl ? (
+                <div className="flex justify-center">
+                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
+                    <img 
+                      src={imageUrl} 
+                      alt={prize.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // إذا فشل تحميل الصورة، عرض أيقونة بديلة
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-4xl">🎁</div>
+              )}
+              
               <h2 className="text-2xl font-bold text-white">Enter the Draw</h2>
               <p className="text-lg text-gray-300">{prize.name}</p>
               <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
@@ -230,32 +252,32 @@ const ParticipationModal = ({
             </div>
 
             <Card className="bg-blue-500/20 border-blue-500/30">
-  <CardContent className="p-4">
-    <h4 className="text-white font-medium mb-3">
-      Participation Steps:
-    </h4>
-    <div className="space-y-2 text-sm">
-      <div className="flex items-center text-gray-300">
-        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-          1
-        </span>
-        Enter your {prize.participationType === "id" ? "ID" : "Email"} address
-      </div>
-      <div className="flex items-center text-gray-300">
-        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-          2
-        </span>
-        Complete the required offer
-      </div>
-      <div className="flex items-center text-gray-300">
-        <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-          3
-        </span>
-        Wait for the draw results
-      </div>
-    </div>
-  </CardContent>
-</Card>
+              <CardContent className="p-4">
+                <h4 className="text-white font-medium mb-3">
+                  Participation Steps:
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      1
+                    </span>
+                    Enter your {prize.participationType === "id" ? "ID" : "Email"} address
+                  </div>
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      2
+                    </span>
+                    Complete the required offer
+                  </div>
+                  <div className="flex items-center text-gray-300">
+                    <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                      3
+                    </span>
+                    Wait for the draw results
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex space-x-3">
               <Button
@@ -271,7 +293,7 @@ const ParticipationModal = ({
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="border-white/30 text-black hover:bg-white/10"
+                className="border-white/30 text-white hover:bg-white/10"
               >
                 Cancel
               </Button>
