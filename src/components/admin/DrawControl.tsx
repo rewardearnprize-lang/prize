@@ -163,6 +163,8 @@ const handleRandomDraw = async () => {
     return;
   }
 
+  setAddingDraw(true); // ✅ قبل الإرسال
+
   try {
     const drawData = {
       name: newDraw.name,
@@ -177,7 +179,7 @@ const handleRandomDraw = async () => {
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      image: newDraw.imageUrl, // ✅ استخدم الرابط مباشرة
+      image: newDraw.imageUrl, // رابط الصورة
     };
 
     const result = await dispatch(addDraw(drawData));
@@ -213,6 +215,8 @@ const handleRandomDraw = async () => {
       description: "تعذر إضافة السحب.",
       variant: "destructive",
     });
+  } finally {
+    setAddingDraw(false); // ✅ بعد الانتهاء
   }
 };
 
