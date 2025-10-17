@@ -72,7 +72,7 @@ const DrawControl = () => {
     offerUrl: "",
     offerId: "",
     participationType: "email" as "email" | "id",
-     imageFile: null as File | null, // ✅ هنا
+    imageUrl: "", // ✅ رابط الصورة
   });
 
   useEffect(() => {
@@ -164,19 +164,6 @@ const handleRandomDraw = async () => {
   }
 
   try {
-    setAddingDraw(true); // ✅ بدأ التحميل
-
-    let imageUrl = "";
-    const file: File | null | undefined = newDraw.imageFile;
-
-    if (file) {
-      const storage = getStorage();
-      const filename = `${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, `draws/${filename}`);
-      await uploadBytes(storageRef, file);
-      imageUrl = await getDownloadURL(storageRef);
-    }
-
     const drawData = {
       name: newDraw.name,
       description: newDraw.description,
@@ -190,11 +177,10 @@ const handleRandomDraw = async () => {
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      image: imageUrl,
+      image: newDraw.imageUrl, // ✅ استخدم الرابط مباشرة
     };
 
     const result = await dispatch(addDraw(drawData));
-
     if (addDraw.fulfilled.match(result)) {
       setNewDraw({
         id: "",
@@ -212,31 +198,24 @@ const handleRandomDraw = async () => {
         offerUrl: "",
         offerId: "",
         participationType: "email",
-        imageFile: null,
+        imageUrl: "", // إعادة تعيين
       });
       setShowAddDrawDialog(false);
       toast({
         title: "تم إضافة السحب",
         description: "تمت إضافة السحب الجديد بنجاح",
       });
-    } else {
-      toast({
-        title: "خطأ",
-        description: "تعذر إضافة السحب. حاول مرة أخرى.",
-        variant: "destructive",
-      });
     }
   } catch (error) {
     console.error("handleAddDraw error:", error);
     toast({
       title: "حدث خطأ",
-      description: "تعذر إكمال عملية الإضافة. تأكد من إعداد Firebase Storage.",
+      description: "تعذر إضافة السحب.",
       variant: "destructive",
     });
-  } finally {
-    setAddingDraw(false); // ✅ انتهى التحميل
   }
 };
+
 
 
   const handleEditDraw = (draw: Draw) => {
@@ -349,16 +328,18 @@ const handleRandomDraw = async () => {
                   />
                 </div>
 <div>
-  <Label className="text-gray-300">صورة العرض</Label>
+  <Label className="text-gray-300">رابط صورة العرض</Label>
   <Input
-    type="file"
-    accept="image/*"
+    type="url"
+    value={newDraw.imageUrl}
     onChange={(e) =>
-      setNewDraw({ ...newDraw, imageFile: e.target.files?.[0] || null })
+      setNewDraw({ ...newDraw, imageUrl: e.target.value })
     }
+    placeholder="https://example.com/image.jpg"
     className="bg-gray-800 border-gray-600 text-white"
   />
 </div>
+
 
 
 
