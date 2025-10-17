@@ -53,6 +53,8 @@ const DrawControl = () => {
   const [showAddDrawDialog, setShowAddDrawDialog] = useState(false);
   const [showEditDrawDialog, setShowEditDrawDialog] = useState(false);
   const [editingDraw, setEditingDraw] = useState<Draw | null>(null);
+  const [addingDraw, setAddingDraw] = useState(false);
+
 
   const [newDraw, setNewDraw] = useState({
     id: "",
@@ -162,9 +164,10 @@ const handleRandomDraw = async () => {
   }
 
   try {
-    // ✅ رفع الصورة إلى Firebase Storage
+    setAddingDraw(true); // ✅ بدأ التحميل
+
     let imageUrl = "";
-    const file: File | null | undefined = (newDraw as any).imageFile;
+    const file: File | null | undefined = newDraw.imageFile;
 
     if (file) {
       const storage = getStorage();
@@ -174,7 +177,6 @@ const handleRandomDraw = async () => {
       imageUrl = await getDownloadURL(storageRef);
     }
 
-    // ✅ بيانات السحب الجديدة
     const drawData = {
       name: newDraw.name,
       description: newDraw.description,
@@ -194,7 +196,6 @@ const handleRandomDraw = async () => {
     const result = await dispatch(addDraw(drawData));
 
     if (addDraw.fulfilled.match(result)) {
-      // ✅ إعادة تهيئة القيم بعد الإضافة
       setNewDraw({
         id: "",
         name: "",
@@ -232,8 +233,11 @@ const handleRandomDraw = async () => {
       description: "تعذر إكمال عملية الإضافة. تأكد من إعداد Firebase Storage.",
       variant: "destructive",
     });
+  } finally {
+    setAddingDraw(false); // ✅ انتهى التحميل
   }
 };
+
 
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
@@ -470,12 +474,15 @@ const handleRandomDraw = async () => {
                   >
                     إلغاء
                   </Button>
-                  <Button
-                    onClick={handleAddDraw}
-                    className="bg-green-500 hover:bg-green-600"
-                  >
-                    إضافة السحب
-                  </Button>
+             <Button
+  onClick={handleAddDraw}
+  className="bg-green-500 hover:bg-green-600"
+  disabled={addingDraw}
+>
+  {addingDraw ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+  {addingDraw ? "جارٍ الإضافة..." : "إضافة السحب"}
+</Button>
+
                 </div>
               </div>
             </DialogContent>
