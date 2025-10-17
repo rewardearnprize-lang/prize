@@ -188,9 +188,7 @@ const DrawControl = () => {
     }
   };
 
-  import { collection, doc, getDocs, query, updateDoc, where, setDoc } from "firebase/firestore";
-
-const handleAddDraw = async () => {
+  const handleAddDraw = async () => {
   if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
     toast({
       title: "خطأ",
@@ -203,91 +201,72 @@ const handleAddDraw = async () => {
   setAddingDraw(true);
 
   try {
-    // إنشاء مرجع جديد للسحب
-    const drawRef = doc(collection(firestore, 'draws'));
-    
     const drawData = {
-      id: drawRef.id,
       name: newDraw.name,
       description: newDraw.description,
       startDate: newDraw.startDate,
       endDate: newDraw.endDate,
       drawDate: newDraw.drawDate,
-      status: "upcoming",
+      status: "upcoming" as const,
       maxParticipants: newDraw.maxParticipants,
       prize: newDraw.prize,
       prizeValue: newDraw.prizeValue,
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      imageUrl: newDraw.imageUrl,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      participants: [],
-      currentWinners: 0,
-      maxWinners: 1,
-      minPoints: newDraw.minPoints || 0,
-      minOffers: newDraw.minOffers || 0,
-      socialMediaRequired: newDraw.socialMediaRequired || false
+      imageUrl: newDraw.imageUrl, // تأكد من إرسال imageUrl
     };
 
-    console.log("بيانات السحب المرسلة إلى Firestore:", drawData);
+    console.log("بيانات السحب المرسلة:", drawData); // للتصحيح
 
-    // الحفظ المباشر في Firestore
-    await setDoc(drawRef, drawData);
+    const result = await dispatch(addDraw(drawData));
     
-    console.log("تم الحفظ بنجاح في Firestore");
-
-    // إعادة جلب السحوبات لتحديث الـ state
-    await dispatch(fetchDraws());
-
-    // إعادة تعيين النموذج
-    setNewDraw({
-      id: "",
-      name: "",
-      description: "",
-      startDate: "",
-      endDate: "",
-      drawDate: "",
-      maxParticipants: 100,
-      prize: "",
-      prizeValue: 0,
-      minPoints: 0,
-      minOffers: 0,
-      socialMediaRequired: false,
-      offerUrl: "",
-      offerId: "",
-      participationType: "email",
-      imageUrl: "",
-    });
-    
-    setShowAddDrawDialog(false);
-    toast({
-      title: "تم إضافة السحب",
-      description: "تمت إضافة السحب الجديد بنجاح",
-    });
-    
-  } catch (error: any) {
-    console.error("handleAddDraw error:", error);
-    console.error("تفاصيل الخطأ:", error.message, error.code, error.stack);
-    
-    let errorMessage = "تعذر إضافة السحب.";
-    
-    if (error.code === 'permission-denied') {
-      errorMessage = "ليس لديك صلاحية لإضافة سحوبات. تأكد من قواعد الأمان في Firebase.";
-    } else if (error.code === 'unavailable') {
-      errorMessage = "لا يوجد اتصال بالإنترنت. تأكد من اتصالك بالشبكة.";
+    if (addDraw.fulfilled.match(result)) {
+      console.log("تم إضافة السحب بنجاح:", result.payload); // للتصحيح
+      
+      setNewDraw({
+        id: "",
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        drawDate: "",
+        maxParticipants: 100,
+        prize: "",
+        prizeValue: 0,
+        minPoints: 0,
+        minOffers: 0,
+        socialMediaRequired: false,
+        offerUrl: "",
+        offerId: "",
+        participationType: "email",
+        imageUrl: "", // إعادة تعيين
+      });
+      setShowAddDrawDialog(false);
+      toast({
+        title: "تم إضافة السحب",
+        description: "تمت إضافة السحب الجديد بنجاح",
+      });
+    } else if (addDraw.rejected.match(result)) {
+      console.error("خطأ في إضافة السحب:", result.error);
+      toast({
+        title: "حدث خطأ",
+        description: "تعذر إضافة السحب.",
+        variant: "destructive",
+      });
     }
-    
+  } catch (error) {
+    console.error("handleAddDraw error:", error);
     toast({
       title: "حدث خطأ",
-      description: errorMessage,
+      description: "تعذر إضافة السحب.",
       variant: "destructive",
     });
   } finally {
     setAddingDraw(false);
   }
 };
+
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
     setShowEditDrawDialog(true);
