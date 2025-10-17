@@ -189,71 +189,83 @@ const DrawControl = () => {
   };
 
   const handleAddDraw = async () => {
-    if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
-      toast({
-        title: "خطأ",
-        description: "يرجى ملء البيانات المطلوبة",
-        variant: "destructive",
+  if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
+    toast({
+      title: "خطأ",
+      description: "يرجى ملء البيانات المطلوبة",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setAddingDraw(true);
+
+  try {
+    const drawData = {
+      name: newDraw.name,
+      description: newDraw.description,
+      startDate: newDraw.startDate,
+      endDate: newDraw.endDate,
+      drawDate: newDraw.drawDate,
+      status: "upcoming" as const,
+      maxParticipants: newDraw.maxParticipants,
+      prize: newDraw.prize,
+      prizeValue: newDraw.prizeValue,
+      offerUrl: newDraw.offerUrl,
+      offerId: newDraw.offerId,
+      participationType: newDraw.participationType,
+      imageUrl: newDraw.imageUrl, // تأكد من إرسال imageUrl
+    };
+
+    console.log("بيانات السحب المرسلة:", drawData); // للتصحيح
+
+    const result = await dispatch(addDraw(drawData));
+    
+    if (addDraw.fulfilled.match(result)) {
+      console.log("تم إضافة السحب بنجاح:", result.payload); // للتصحيح
+      
+      setNewDraw({
+        id: "",
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        drawDate: "",
+        maxParticipants: 100,
+        prize: "",
+        prizeValue: 0,
+        minPoints: 0,
+        minOffers: 0,
+        socialMediaRequired: false,
+        offerUrl: "",
+        offerId: "",
+        participationType: "email",
+        imageUrl: "", // إعادة تعيين
       });
-      return;
-    }
-
-    setAddingDraw(true);
-
-    try {
-      const drawData = {
-        name: newDraw.name,
-        description: newDraw.description,
-        startDate: newDraw.startDate,
-        endDate: newDraw.endDate,
-        drawDate: newDraw.drawDate,
-        status: "upcoming" as const,
-        maxParticipants: newDraw.maxParticipants,
-        prize: newDraw.prize,
-        prizeValue: newDraw.prizeValue,
-        offerUrl: newDraw.offerUrl,
-        offerId: newDraw.offerId,
-        participationType: newDraw.participationType,
-        imageUrl: newDraw.imageUrl,
-      };
-
-      const result = await dispatch(addDraw(drawData));
-      if (addDraw.fulfilled.match(result)) {
-        setNewDraw({
-          id: "",
-          name: "",
-          description: "",
-          startDate: "",
-          endDate: "",
-          drawDate: "",
-          maxParticipants: 100,
-          prize: "",
-          prizeValue: 0,
-          minPoints: 0,
-          minOffers: 0,
-          socialMediaRequired: false,
-          offerUrl: "",
-          offerId: "",
-          participationType: "email",
-          imageUrl: "",
-        });
-        setShowAddDrawDialog(false);
-        toast({
-          title: "تم إضافة السحب",
-          description: "تمت إضافة السحب الجديد بنجاح",
-        });
-      }
-    } catch (error) {
-      console.error("handleAddDraw error:", error);
+      setShowAddDrawDialog(false);
+      toast({
+        title: "تم إضافة السحب",
+        description: "تمت إضافة السحب الجديد بنجاح",
+      });
+    } else if (addDraw.rejected.match(result)) {
+      console.error("خطأ في إضافة السحب:", result.error);
       toast({
         title: "حدث خطأ",
         description: "تعذر إضافة السحب.",
         variant: "destructive",
       });
-    } finally {
-      setAddingDraw(false);
     }
-  };
+  } catch (error) {
+    console.error("handleAddDraw error:", error);
+    toast({
+      title: "حدث خطأ",
+      description: "تعذر إضافة السحب.",
+      variant: "destructive",
+    });
+  } finally {
+    setAddingDraw(false);
+  }
+};
 
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
@@ -261,33 +273,37 @@ const DrawControl = () => {
   };
 
   const handleUpdateDraw = async () => {
-    if (!editingDraw) return;
+  if (!editingDraw) return;
 
-    try {
-      const result = await dispatch(
-        updateDraw({
-          id: editingDraw.id,
-          drawData: editingDraw,
-        })
-      );
+  try {
+    const result = await dispatch(
+      updateDraw({
+        id: editingDraw.id,
+        drawData: {
+          ...editingDraw,
+          imageUrl: editingDraw.imageUrl || "", // تأكد من إرسال imageUrl
+          updatedAt: new Date().toISOString()
+        },
+      })
+    );
 
-      if (updateDraw.fulfilled.match(result)) {
-        setShowEditDrawDialog(false);
-        setEditingDraw(null);
-        toast({
-          title: "تم بنجاح",
-          description: "تم تحديث بيانات السحب",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating draw:", error);
+    if (updateDraw.fulfilled.match(result)) {
+      setShowEditDrawDialog(false);
+      setEditingDraw(null);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء تحديث السحب",
-        variant: "destructive",
+        title: "تم بنجاح",
+        description: "تم تحديث بيانات السحب",
       });
     }
-  };
+  } catch (error) {
+    console.error("Error updating draw:", error);
+    toast({
+      title: "خطأ",
+      description: "حدث خطأ أثناء تحديث السحب",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleDeleteDraw = async (id: string) => {
     try {
