@@ -188,7 +188,9 @@ const DrawControl = () => {
     }
   };
 
-  const handleAddDraw = async () => {
+  import { collection, doc, getDocs, query, updateDoc, where, setDoc } from "firebase/firestore";
+
+const handleAddDraw = async () => {
   if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
     toast({
       title: "خطأ",
@@ -218,15 +220,15 @@ const DrawControl = () => {
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      imageUrl: newDraw.imageUrl, // هذا الحقل سيرسل
+      imageUrl: newDraw.imageUrl,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       participants: [],
       currentWinners: 0,
       maxWinners: 1,
-      minPoints: newDraw.minPoints,
-      minOffers: newDraw.minOffers,
-      socialMediaRequired: newDraw.socialMediaRequired
+      minPoints: newDraw.minPoints || 0,
+      minOffers: newDraw.minOffers || 0,
+      socialMediaRequired: newDraw.socialMediaRequired || false
     };
 
     console.log("بيانات السحب المرسلة إلى Firestore:", drawData);
@@ -234,8 +236,10 @@ const DrawControl = () => {
     // الحفظ المباشر في Firestore
     await setDoc(drawRef, drawData);
     
+    console.log("تم الحفظ بنجاح في Firestore");
+
     // إعادة جلب السحوبات لتحديث الـ state
-    dispatch(fetchDraws());
+    await dispatch(fetchDraws());
 
     // إعادة تعيين النموذج
     setNewDraw({
@@ -263,18 +267,27 @@ const DrawControl = () => {
       description: "تمت إضافة السحب الجديد بنجاح",
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("handleAddDraw error:", error);
+    console.error("تفاصيل الخطأ:", error.message, error.code, error.stack);
+    
+    let errorMessage = "تعذر إضافة السحب.";
+    
+    if (error.code === 'permission-denied') {
+      errorMessage = "ليس لديك صلاحية لإضافة سحوبات. تأكد من قواعد الأمان في Firebase.";
+    } else if (error.code === 'unavailable') {
+      errorMessage = "لا يوجد اتصال بالإنترنت. تأكد من اتصالك بالشبكة.";
+    }
+    
     toast({
       title: "حدث خطأ",
-      description: "تعذر إضافة السحب.",
+      description: errorMessage,
       variant: "destructive",
     });
   } finally {
     setAddingDraw(false);
   }
 };
-
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
     setShowEditDrawDialog(true);
