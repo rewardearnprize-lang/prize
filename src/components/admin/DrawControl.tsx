@@ -72,7 +72,7 @@ const DrawControl = () => {
     offerUrl: "",
     offerId: "",
     participationType: "email" as "email" | "id",
-    imageUrl: "", // ✅ رابط الصورة
+    imageUrl: newDraw.imageUrl, // ✅ استخدم المفتاح imageUrl وليس image
   });
 
   useEffect(() => {
