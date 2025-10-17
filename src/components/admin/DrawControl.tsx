@@ -23,7 +23,6 @@ import { firestore } from "@/lib/firebase";
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-
 import {
   fetchDraws,
   addDraw,
@@ -55,7 +54,6 @@ const DrawControl = () => {
   const [editingDraw, setEditingDraw] = useState<Draw | null>(null);
   const [addingDraw, setAddingDraw] = useState(false);
 
-
   const [newDraw, setNewDraw] = useState({
     id: "",
     name: "",
@@ -72,7 +70,7 @@ const DrawControl = () => {
     offerUrl: "",
     offerId: "",
     participationType: "email" as "email" | "id",
-    imageUrl: newDraw.imageUrl, // ✅ استخدم المفتاح imageUrl وليس image
+    imageUrl: "",
   });
 
   useEffect(() => {
@@ -113,24 +111,40 @@ const DrawControl = () => {
     }
   }, [drawsError, toast]);
 
-const handleRandomDraw = async () => {
-  const selected = draws.find((d) => d.id === selectedDraw);
-  if (!selected) return;
+  const handleRandomDraw = async () => {
+    const selected = draws.find((d) => d.id === selectedDraw);
+    if (!selected) return;
 
-  const eligible = participants.filter((p) => p.prize === selected.prize);
-  if (eligible.length === 0) {
-    return;
-  }
+    const eligible = participants.filter((p) => p.prize === selected.prize);
+    if (eligible.length === 0) {
+      toast({
+        title: "تحذير",
+        description: "لا يوجد مشاركون مؤهلون لهذا السحب",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const randomWinner = eligible[Math.floor(Math.random() * eligible.length)];
+    const randomWinner = eligible[Math.floor(Math.random() * eligible.length)];
 
-  await updateDoc(doc(firestore, "participants", randomWinner.id), {
-    status: "accepted",
-  });
+    try {
+      await updateDoc(doc(firestore, "participants", randomWinner.id), {
+        status: "accepted",
+      });
 
-  alert(`الفائز هو: ${randomWinner.email}`);
-};
-
+      toast({
+        title: "تم السحب بنجاح",
+        description: `الفائز هو: ${randomWinner.email}`,
+      });
+    } catch (error) {
+      console.error("Error updating winner:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث حالة الفائز",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleConfirmWinner = async () => {
     if (!selectedWinner || !selectedDraw || !proofFile) {
@@ -142,85 +156,104 @@ const handleRandomDraw = async () => {
       return;
     }
 
-    toast({
-      title: "تم بنجاح!",
-      description: "تم تأكيد الفائز وحفظ البيانات",
-    });
+    try {
+      const storage = getStorage();
+      const proofRef = ref(storage, `proofs/${selectedWinner}_${Date.now()}`);
+      await uploadBytes(proofRef, proofFile);
+      const proofUrl = await getDownloadURL(proofRef);
 
-    setSelectedWinner("");
-    setSelectedDraw("");
-    setProofFile(null);
-    setProofDescription("");
+      await updateDoc(doc(firestore, "winners", selectedWinner), {
+        drawId: selectedDraw,
+        proofUrl,
+        proofDescription,
+        confirmedAt: new Date().toISOString(),
+      });
+
+      toast({
+        title: "تم بنجاح!",
+        description: "تم تأكيد الفائز وحفظ البيانات",
+      });
+
+      setSelectedWinner("");
+      setSelectedDraw("");
+      setProofFile(null);
+      setProofDescription("");
+    } catch (error) {
+      console.error("Error confirming winner:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ البيانات",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddDraw = async () => {
-  if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
-    toast({
-      title: "خطأ",
-      description: "يرجى ملء البيانات المطلوبة",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  setAddingDraw(true); // ✅ قبل الإرسال
-
-  try {
-    const drawData = {
-      name: newDraw.name,
-      description: newDraw.description,
-      startDate: newDraw.startDate,
-      endDate: newDraw.endDate,
-      drawDate: newDraw.drawDate,
-      status: "upcoming" as const,
-      maxParticipants: newDraw.maxParticipants,
-      prize: newDraw.prize,
-      prizeValue: newDraw.prizeValue,
-      offerUrl: newDraw.offerUrl,
-      offerId: newDraw.offerId,
-      participationType: newDraw.participationType,
-      image: newDraw.imageUrl, // رابط الصورة
-    };
-
-    const result = await dispatch(addDraw(drawData));
-    if (addDraw.fulfilled.match(result)) {
-      setNewDraw({
-        id: "",
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        drawDate: "",
-        maxParticipants: 100,
-        prize: "",
-        prizeValue: 0,
-        minPoints: 0,
-        minOffers: 0,
-        socialMediaRequired: false,
-        offerUrl: "",
-        offerId: "",
-        participationType: "email",
-        imageUrl: "", // إعادة تعيين
-      });
-      setShowAddDrawDialog(false);
+    if (!newDraw.name || !newDraw.startDate || !newDraw.endDate) {
       toast({
-        title: "تم إضافة السحب",
-        description: "تمت إضافة السحب الجديد بنجاح",
+        title: "خطأ",
+        description: "يرجى ملء البيانات المطلوبة",
+        variant: "destructive",
       });
+      return;
     }
-  } catch (error) {
-    console.error("handleAddDraw error:", error);
-    toast({
-      title: "حدث خطأ",
-      description: "تعذر إضافة السحب.",
-      variant: "destructive",
-    });
-  } finally {
-    setAddingDraw(false); // ✅ بعد الانتهاء
-  }
-};
 
+    setAddingDraw(true);
 
+    try {
+      const drawData = {
+        name: newDraw.name,
+        description: newDraw.description,
+        startDate: newDraw.startDate,
+        endDate: newDraw.endDate,
+        drawDate: newDraw.drawDate,
+        status: "upcoming" as const,
+        maxParticipants: newDraw.maxParticipants,
+        prize: newDraw.prize,
+        prizeValue: newDraw.prizeValue,
+        offerUrl: newDraw.offerUrl,
+        offerId: newDraw.offerId,
+        participationType: newDraw.participationType,
+        imageUrl: newDraw.imageUrl,
+      };
+
+      const result = await dispatch(addDraw(drawData));
+      if (addDraw.fulfilled.match(result)) {
+        setNewDraw({
+          id: "",
+          name: "",
+          description: "",
+          startDate: "",
+          endDate: "",
+          drawDate: "",
+          maxParticipants: 100,
+          prize: "",
+          prizeValue: 0,
+          minPoints: 0,
+          minOffers: 0,
+          socialMediaRequired: false,
+          offerUrl: "",
+          offerId: "",
+          participationType: "email",
+          imageUrl: "",
+        });
+        setShowAddDrawDialog(false);
+        toast({
+          title: "تم إضافة السحب",
+          description: "تمت إضافة السحب الجديد بنجاح",
+        });
+      }
+    } catch (error) {
+      console.error("handleAddDraw error:", error);
+      toast({
+        title: "حدث خطأ",
+        description: "تعذر إضافة السحب.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingDraw(false);
+    }
+  };
 
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
@@ -230,29 +263,47 @@ const handleRandomDraw = async () => {
   const handleUpdateDraw = async () => {
     if (!editingDraw) return;
 
-    const result = await dispatch(
-      updateDraw({
-        id: editingDraw.id,
-        drawData: editingDraw,
-      })
-    );
+    try {
+      const result = await dispatch(
+        updateDraw({
+          id: editingDraw.id,
+          drawData: editingDraw,
+        })
+      );
 
-    if (updateDraw.fulfilled.match(result)) {
-      setShowEditDrawDialog(false);
-      setEditingDraw(null);
+      if (updateDraw.fulfilled.match(result)) {
+        setShowEditDrawDialog(false);
+        setEditingDraw(null);
+        toast({
+          title: "تم بنجاح",
+          description: "تم تحديث بيانات السحب",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating draw:", error);
       toast({
-        title: "تم بنجاح",
-        description: "تم تحديث بيانات السحب",
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث السحب",
+        variant: "destructive",
       });
     }
   };
 
   const handleDeleteDraw = async (id: string) => {
-    const result = await dispatch(deleteDraw(id));
-    if (deleteDraw.fulfilled.match(result)) {
+    try {
+      const result = await dispatch(deleteDraw(id));
+      if (deleteDraw.fulfilled.match(result)) {
+        toast({
+          title: "تم الحذف",
+          description: "تم حذف السحب بنجاح",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting draw:", error);
       toast({
-        title: "تم الحذف",
-        description: "تم حذف السحب بنجاح",
+        title: "خطأ",
+        description: "حدث خطأ أثناء حذف السحب",
+        variant: "destructive",
       });
     }
   };
@@ -261,10 +312,23 @@ const handleRandomDraw = async () => {
     id: string,
     status: "upcoming" | "active" | "completed" | "cancelled"
   ) => {
-    await dispatch(updateDrawStatus({ id, status }));
+    try {
+      await dispatch(updateDrawStatus({ id, status }));
+      toast({
+        title: "تم التحديث",
+        description: "تم تغيير حالة السحب بنجاح",
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تغيير الحالة",
+        variant: "destructive",
+      });
+    }
   };
 
-   if (drawsLoading || loadingParticipants) {
+  if (drawsLoading || loadingParticipants) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-white" />
@@ -331,23 +395,19 @@ const handleRandomDraw = async () => {
                     placeholder="https://example.com/offer"
                   />
                 </div>
-<div>
-  <Label className="text-gray-300">رابط صورة العرض</Label>
-  <Input
-    type="url"
-    value={newDraw.imageUrl}
-    onChange={(e) =>
-      setNewDraw({ ...newDraw, imageUrl: e.target.value })
-    }
-    placeholder="https://example.com/image.jpg"
-    className="bg-gray-800 border-gray-600 text-white"
-  />
-</div>
 
-
-
-
-                
+                <div>
+                  <Label className="text-gray-300">رابط صورة العرض</Label>
+                  <Input
+                    type="url"
+                    value={newDraw.imageUrl}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, imageUrl: e.target.value })
+                    }
+                    placeholder="https://example.com/image.jpg"
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -396,7 +456,7 @@ const handleRandomDraw = async () => {
                       onChange={(e) =>
                         setNewDraw({
                           ...newDraw,
-                          maxParticipants: parseInt(e.target.value)
+                          maxParticipants: parseInt(e.target.value) || 0
                         })
                       }
                       className="bg-gray-800 border-gray-600 text-white"
@@ -421,7 +481,7 @@ const handleRandomDraw = async () => {
                       onChange={(e) =>
                         setNewDraw({
                           ...newDraw,
-                          prizeValue: parseInt(e.target.value)
+                          prizeValue: parseInt(e.target.value) || 0
                         })
                       }
                       className="bg-gray-800 border-gray-600 text-white mt-2"
@@ -459,15 +519,14 @@ const handleRandomDraw = async () => {
                   >
                     إلغاء
                   </Button>
-             <Button
-  onClick={handleAddDraw}
-  className="bg-green-500 hover:bg-green-600"
-  disabled={addingDraw}
->
-  {addingDraw ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-  {addingDraw ? "جارٍ الإضافة..." : "إضافة السحب"}
-</Button>
-
+                  <Button
+                    onClick={handleAddDraw}
+                    className="bg-green-500 hover:bg-green-600"
+                    disabled={addingDraw}
+                  >
+                    {addingDraw ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                    {addingDraw ? "جارٍ الإضافة..." : "إضافة السحب"}
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -593,17 +652,15 @@ const handleRandomDraw = async () => {
               ))}
             </div>
           )}
-
-          
         </CardContent>
       </Card>
+
       <Card className="bg-white/10 backdrop-blur-sm border-white/20">
         <CardHeader>
           <CardTitle className="text-white">إجراء السحب</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            {/* اختيار السحب */}
             <div className="space-y-4">
               <Label className="text-gray-300">اختر السحب للسحب عليه</Label>
               <Select value={selectedDraw} onValueChange={setSelectedDraw}>
@@ -641,25 +698,23 @@ const handleRandomDraw = async () => {
                 <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                   <SelectValue placeholder="اختر الفائز" />
                 </SelectTrigger>
-<SelectContent className="bg-gray-800 border-gray-600">
-  {participants
-    .filter((p) => p.prizeId === selectedDraw) // 👈 بدل الفلترة على prize.name
-    .map((participant) => (
-      <SelectItem
-        key={participant.id}
-        value={participant.id}
-        className="text-white"
-      >
-        {participant.email || participant.id} - {participant.prize}
-      </SelectItem>
-    ))}
-</SelectContent>
-
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {participants
+                    .filter((p) => p.prizeId === selectedDraw)
+                    .map((participant) => (
+                      <SelectItem
+                        key={participant.id}
+                        value={participant.id}
+                        className="text-white"
+                      >
+                        {participant.email || participant.id} - {participant.prize}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* إثبات الفوز */}
           {selectedWinner && (
             <div className="space-y-4 p-4 bg-white/5 rounded-lg">
               <h4 className="text-white font-medium">
@@ -751,6 +806,22 @@ const handleRandomDraw = async () => {
                     })
                   }
                   className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+
+              <div>
+                <Label className="text-gray-300">رابط صورة العرض</Label>
+                <Input
+                  type="url"
+                  value={editingDraw.imageUrl || ""}
+                  onChange={(e) =>
+                    setEditingDraw({
+                      ...editingDraw,
+                      imageUrl: e.target.value
+                    })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                  placeholder="https://example.com/image.jpg"
                 />
               </div>
 
@@ -852,7 +923,6 @@ const handleRandomDraw = async () => {
           )}
         </DialogContent>
       </Dialog>
-      
     </div>
   );
 };
