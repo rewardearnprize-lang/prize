@@ -21,6 +21,8 @@ import { Shuffle, Gift, Plus, Loader2, Edit, Trash2, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { firestore } from "@/lib/firebase";
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
 
 import {
   fetchDraws,
@@ -68,6 +70,7 @@ const DrawControl = () => {
     offerUrl: "",
     offerId: "",
     participationType: "email" as "email" | "id",
+     imageFile: null as File | null, // ✅ هنا
   });
 
   useEffect(() => {
@@ -157,6 +160,18 @@ const handleRandomDraw = async () => {
       });
       return;
     }
+    try {
+    // رفع الصورة إلى Firebase Storage (إن وجدت)
+    let imageUrl = "";
+    // newDraw.imageFile قد لا تكون معرفة إن لم تضفها للحالة — لذلك نفحص بحذر
+    const file: File | null | undefined = (newDraw as any).imageFile;
+    if (file) {
+      const storage = getStorage();
+      const filename = `${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, `draws/${filename}`);
+      await uploadBytes(storageRef, file);
+      imageUrl = await getDownloadURL(storageRef);
+    }
 
     const drawData = {
       name: newDraw.name,
@@ -171,6 +186,7 @@ const handleRandomDraw = async () => {
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
+      image: imageUrl, // ✅ رابط الصورة
     };
 
     const result = await dispatch(addDraw(drawData));
@@ -191,6 +207,7 @@ const handleRandomDraw = async () => {
         offerUrl: "",
         offerId: "",
         participationType: "email",
+         imageFile: null, // تأكد من وجود هذا الحقل في state
       });
       setShowAddDrawDialog(false);
       toast({
@@ -309,6 +326,21 @@ const handleRandomDraw = async () => {
                     placeholder="https://example.com/offer"
                   />
                 </div>
+<div>
+  <Label className="text-gray-300">صورة العرض</Label>
+  <Input
+    type="file"
+    accept="image/*"
+    onChange={(e) =>
+      setNewDraw({ ...newDraw, imageFile: e.target.files?.[0] || null })
+    }
+    className="bg-gray-800 border-gray-600 text-white"
+  />
+</div>
+
+
+
+                
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
