@@ -201,60 +201,68 @@ const DrawControl = () => {
   setAddingDraw(true);
 
   try {
+    // إنشاء مرجع جديد للسحب
+    const drawRef = doc(collection(firestore, 'draws'));
+    
     const drawData = {
+      id: drawRef.id,
       name: newDraw.name,
       description: newDraw.description,
       startDate: newDraw.startDate,
       endDate: newDraw.endDate,
       drawDate: newDraw.drawDate,
-      status: "upcoming" as const,
+      status: "upcoming",
       maxParticipants: newDraw.maxParticipants,
       prize: newDraw.prize,
       prizeValue: newDraw.prizeValue,
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      imageUrl: newDraw.imageUrl, // تأكد من إرسال imageUrl
+      imageUrl: newDraw.imageUrl, // هذا الحقل سيرسل
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      participants: [],
+      currentWinners: 0,
+      maxWinners: 1,
+      minPoints: newDraw.minPoints,
+      minOffers: newDraw.minOffers,
+      socialMediaRequired: newDraw.socialMediaRequired
     };
 
-    console.log("بيانات السحب المرسلة:", drawData); // للتصحيح
+    console.log("بيانات السحب المرسلة إلى Firestore:", drawData);
 
-    const result = await dispatch(addDraw(drawData));
+    // الحفظ المباشر في Firestore
+    await setDoc(drawRef, drawData);
     
-    if (addDraw.fulfilled.match(result)) {
-      console.log("تم إضافة السحب بنجاح:", result.payload); // للتصحيح
-      
-      setNewDraw({
-        id: "",
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        drawDate: "",
-        maxParticipants: 100,
-        prize: "",
-        prizeValue: 0,
-        minPoints: 0,
-        minOffers: 0,
-        socialMediaRequired: false,
-        offerUrl: "",
-        offerId: "",
-        participationType: "email",
-        imageUrl: "", // إعادة تعيين
-      });
-      setShowAddDrawDialog(false);
-      toast({
-        title: "تم إضافة السحب",
-        description: "تمت إضافة السحب الجديد بنجاح",
-      });
-    } else if (addDraw.rejected.match(result)) {
-      console.error("خطأ في إضافة السحب:", result.error);
-      toast({
-        title: "حدث خطأ",
-        description: "تعذر إضافة السحب.",
-        variant: "destructive",
-      });
-    }
+    // إعادة جلب السحوبات لتحديث الـ state
+    dispatch(fetchDraws());
+
+    // إعادة تعيين النموذج
+    setNewDraw({
+      id: "",
+      name: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      drawDate: "",
+      maxParticipants: 100,
+      prize: "",
+      prizeValue: 0,
+      minPoints: 0,
+      minOffers: 0,
+      socialMediaRequired: false,
+      offerUrl: "",
+      offerId: "",
+      participationType: "email",
+      imageUrl: "",
+    });
+    
+    setShowAddDrawDialog(false);
+    toast({
+      title: "تم إضافة السحب",
+      description: "تمت إضافة السحب الجديد بنجاح",
+    });
+    
   } catch (error) {
     console.error("handleAddDraw error:", error);
     toast({
