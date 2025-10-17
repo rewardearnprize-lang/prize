@@ -41,7 +41,7 @@ const ParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 لجلب عدد المشاركين الحاليين
+  // 🔹 لجلب عدد المشاركين الحاليين الان
   const fetchJoinedCount = async () => {
     if (!prize) return;
     try {
