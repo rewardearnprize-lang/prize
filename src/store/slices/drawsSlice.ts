@@ -32,6 +32,11 @@ export interface Draw {
   offerId?: string;
   participationType: "email" | "id";
   currentParticipants?: number;
+  imageUrl?: string; // أضف هذا الحقل
+  drawDate?: string; // أضف هذا الحقل أيضاً
+  minPoints?: number;
+  minOffers?: number;
+  socialMediaRequired?: boolean;
 }
 
 interface DrawsState {
@@ -58,26 +63,31 @@ export const fetchDraws = createAsyncThunk(
       if (!querySnapshot.empty) {
         const drawsArray: Draw[] = querySnapshot.docs.map((d) => {
           const data = d.data() as Omit<Draw, "id">;
-         return {
-  id: d.id,
-  name: data.name || "سحب بدون اسم",
-  description: data.description || "",
-  prize: data.prize || "جائزة",
-  prizeValue: data.prizeValue || 0,
-  maxWinners: data.maxWinners || 1,
-  maxParticipants: data.maxParticipants || 0,
-  currentWinners: data.currentWinners || 0,
-  startDate: data.startDate || "",
-  endDate: data.endDate || "",
-  status: data.status || "active",
-  participants: data.participants || [],
-  winners: data.winners || [],
-  createdAt: data.createdAt || new Date().toISOString(),
-  updatedAt: data.updatedAt || new Date().toISOString(),
-  offerUrl: data.offerUrl || "",  
-  participationType: data.participationType || "email",
-};
-
+          return {
+            id: d.id,
+            name: data.name || "سحب بدون اسم",
+            description: data.description || "",
+            prize: data.prize || "جائزة",
+            prizeValue: data.prizeValue || 0,
+            maxWinners: data.maxWinners || 1,
+            maxParticipants: data.maxParticipants || 0,
+            currentWinners: data.currentWinners || 0,
+            startDate: data.startDate || "",
+            endDate: data.endDate || "",
+            drawDate: data.drawDate || "", // أضف هذا
+            status: data.status || "active",
+            participants: data.participants || [],
+            winners: data.winners || [],
+            createdAt: data.createdAt || new Date().toISOString(),
+            updatedAt: data.updatedAt || new Date().toISOString(),
+            offerUrl: data.offerUrl || "",  
+            offerId: data.offerId || "", // أضف هذا
+            participationType: data.participationType || "email",
+            imageUrl: data.imageUrl || "", // أضف هذا
+            minPoints: data.minPoints || 0, // أضف هذا
+            minOffers: data.minOffers || 0, // أضف هذا
+            socialMediaRequired: data.socialMediaRequired || false, // أضف هذا
+          };
         });
 
         return drawsArray;
@@ -94,12 +104,14 @@ export const fetchDraws = createAsyncThunk(
             currentWinners: 1,
             startDate: "2024-01-01",
             endDate: "2024-01-31",
+            drawDate: "2024-01-31",
             status: "active",
             participants: ["participant_1", "participant_2", "participant_3"],
             winners: ["participant_1"],
             createdAt: "2024-01-01",
             updatedAt: "2024-01-15",
             participationType: "email",
+            imageUrl: "",
           },
         ];
         return defaultDraws;
@@ -123,25 +135,32 @@ export const addDraw = createAsyncThunk(
 
       const now = new Date().toISOString();
 
-    const newDraw: Omit<Draw, "id"> = {
-  name: drawData.name || "سحب جديد",
-  description: drawData.description || "",
-  prize: drawData.prize || "جائزة",
-  prizeValue: drawData.prizeValue || 0,
-  maxWinners: drawData.maxWinners || 1,
-  maxParticipants: drawData.maxParticipants || 0,
-  currentWinners: 0,
-  startDate: drawData.startDate || "",
-  endDate: drawData.endDate || "",
-  status: drawData.status || "active",
-  participants: [],
-  winners: [],
-  createdAt: now,
-  updatedAt: now,
-  offerUrl: drawData.offerUrl || "",  
-  participationType: drawData.participationType || "email",
-};
+      const newDraw: Omit<Draw, "id"> = {
+        name: drawData.name || "سحب جديد",
+        description: drawData.description || "",
+        prize: drawData.prize || "جائزة",
+        prizeValue: drawData.prizeValue || 0,
+        maxWinners: drawData.maxWinners || 1,
+        maxParticipants: drawData.maxParticipants || 0,
+        currentWinners: 0,
+        startDate: drawData.startDate || "",
+        endDate: drawData.endDate || "",
+        drawDate: drawData.drawDate || "", // أضف هذا
+        status: drawData.status || "upcoming", // غيرت من active إلى upcoming
+        participants: [],
+        winners: [],
+        createdAt: now,
+        updatedAt: now,
+        offerUrl: drawData.offerUrl || "",  
+        offerId: drawData.offerId || "", // أضف هذا
+        participationType: drawData.participationType || "email",
+        imageUrl: drawData.imageUrl || "", // أضف هذا
+        minPoints: drawData.minPoints || 0, // أضف هذا
+        minOffers: drawData.minOffers || 0, // أضف هذا
+        socialMediaRequired: drawData.socialMediaRequired || false, // أضف هذا
+      };
 
+      console.log("🚀 إضافة سحب جديد إلى Firestore:", newDraw); // للتصحيح
 
       const docRef = await addDoc(drawsCollection, newDraw);
       return { ...newDraw, id: docRef.id };
@@ -151,7 +170,6 @@ export const addDraw = createAsyncThunk(
     }
   }
 );
-
 // ---------------- Update draw ----------------
 export const updateDraw = createAsyncThunk(
   "draws/updateDraw",
