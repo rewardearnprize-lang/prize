@@ -215,7 +215,7 @@ const handleRandomDraw = async () => {
         description: "تمت إضافة السحب الجديد بنجاح",
       });
     }
-  };
+  }
 
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
