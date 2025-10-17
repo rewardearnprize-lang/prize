@@ -215,7 +215,15 @@ const handleRandomDraw = async () => {
         description: "تمت إضافة السحب الجديد بنجاح",
       });
     }
+  } catch (error) {
+    console.error("خطأ أثناء رفع السحب:", error);
+    toast({
+      title: "حدث خطأ",
+      description: "تعذر إضافة السحب. حاول مرة أخرى.",
+      variant: "destructive",
+    });
   }
+};
 
   const handleEditDraw = (draw: Draw) => {
     setEditingDraw(draw);
