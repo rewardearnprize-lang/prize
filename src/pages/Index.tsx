@@ -102,7 +102,7 @@ const Index = () => {
           const data = d.data() as any;
           if (data.verified === true) {
             const pid = data.offerId || data.prizeId || "__no_prize__";
-            counts[pid] = (counts[pid] || 0) - 1;
+            counts[pid] = (counts[pid] || 0) + 1;
             total++;
           }
         });
