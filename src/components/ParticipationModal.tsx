@@ -178,7 +178,7 @@ const ParticipationModal = ({
                     <img 
                       src={imageUrl} 
                       alt={prize.name}
-                      className="w-full h-full object-cover"
+                      className="w-{50px} h-{50px} object-cover"
                       onError={(e) => {
                         // إذا فشل تحميل الصورة، عرض أيقونة بديلة
                         e.currentTarget.style.display = 'none';
