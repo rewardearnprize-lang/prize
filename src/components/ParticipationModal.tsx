@@ -174,7 +174,7 @@ const ParticipationModal = ({
               {/* عرض الصورة إذا كانت موجودة */}
               {imageUrl ? (
                 <div className="flex justify-center">
-                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
+                  <div className="relative w-11 h-11 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
                     <img 
                       src={imageUrl} 
                       alt={prize.name}
