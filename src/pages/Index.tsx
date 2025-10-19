@@ -137,25 +137,11 @@ const Index = () => {
               const participants: string[] = prizeData?.participants || [];
 
               if (!participants.includes(uid)) {
-                await updateDoc(prizeRef, {
-                  participants: arrayUnion(uid),
-                });
+               
               }
 
               const participantRef = doc(firestore, "participants", uid);
-              await setDoc(
-                participantRef,
-                {
-                  email: finalEmail,
-                  prize: prizeName || "",
-                  prizeId: prizeId, 
-                  offerId: prizeData.offerId || prizeId, 
-                  verified: true, 
-                  status: "completed",
-                  timestamp: serverTimestamp(),
-                },
-                { merge: true }
-              );
+             
             }
           } catch (error) {
             console.error("❌ Firebase Error:", error);
@@ -216,38 +202,15 @@ const Index = () => {
       const uid = localStorage.getItem("currentUserUID") || generateUID();
       localStorage.setItem("currentUserUID", uid);
 
-      await setDoc(
-        doc(firestore, "participants", uid),
-        {
-          email: email,
-          prize: prizeData.name,
-          prizeId: prizeId,
-          offerId: prizeData.offerId || prizeId,
-          verified: true,
-          status: "completed",
-          timestamp: serverTimestamp(),
-        },
-        { merge: true }
-      );
+     
 
       // إنقاص العدد المتبقي من المشاركين
-      await updateDoc(prizeRef, {
-        maxParticipants: prizeData.maxParticipants - 1,
-      });
+     
 
       // تحديث العدد في الواجهة مباشرة بدون انتظار Firestore
-      setSelectedPrize({
-        ...selectedPrize,
-        maxParticipants: prizeData.maxParticipants - 1,
-      });
+    
 
-      toast({
-        title: "تم الاشتراك بنجاح 🎉",
-        description: "تم حجز مقعدك في هذا السحب!",
-      });
-
-      setShowParticipationModal(false);
-      setShowSuccessModal(true);
+  
     } else {
       toast({
         title: "السحب مكتمل ❌",
