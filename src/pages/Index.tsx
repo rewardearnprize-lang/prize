@@ -263,7 +263,7 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {loading && <p className="text-white text-center">جارِ التحميل...</p>}
+            {loading && <p className="text-white text-center">Loading...</p>}
             {!loading &&
               draws
                 .filter((draw) => draw.status === "active")
