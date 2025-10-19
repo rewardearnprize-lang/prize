@@ -203,9 +203,7 @@ const ParticipationModal = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-         
-          </Card>
+        
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
