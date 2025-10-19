@@ -204,30 +204,7 @@ const ParticipationModal = ({
 
         <div className="space-y-6">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Remaining slots:</span>
-                <Badge variant="secondary">{remaining}</Badge>
-              </div>
-
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${
-                      prize.maxParticipants
-                        ? ((prize.maxParticipants - remaining) / prize.maxParticipants) * 100
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-              </div>
-
-              <div className="flex items-center text-sm text-gray-400">
-                <Clock className="w-4 h-4 mr-2" />
-                <span>The draw will take place once all slots are filled.</span>
-              </div>
-            </CardContent>
+         
           </Card>
 
           <form onSubmit={handleSubmit} className="space-y-4">
