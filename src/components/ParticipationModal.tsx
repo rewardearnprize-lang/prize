@@ -167,7 +167,7 @@ const ParticipationModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-     <div className="m-2">
+  <div className="flex items-center justify-center min-h-screen p-4">
  <DialogContent
   className="max-w-lg max-h-[90vh] overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 m-6 rounded-2xl"
 >
