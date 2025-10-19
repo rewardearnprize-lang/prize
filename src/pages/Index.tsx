@@ -37,34 +37,46 @@ const Index = () => {
   const [showParticipationModal, setShowParticipationModal] = useState(false);
   const [showTransparencyModal, setShowTransparencyModal] = useState(false);
 
+  const [stats, setStats] = useState({
+    participants: 0,
+    winners: 0,
+    prizeValue: 0,
+    continuous: "24/7",
+  });
+
   const [participantsCounts, setParticipantsCounts] = useState<Record<string, number>>({});
-  const [totalParticipants, setTotalParticipants] = useState(0);
 
   const { t } = useTranslation();
+  const { toast } = useToast();
+
   const dispatch = useAppDispatch();
   const { draws, loading } = useAppSelector((state) => state.draws);
 
   const location = useLocation();
+  const params = new URLSearchParams(location.search);
 
   useEffect(() => {
     dispatch(fetchDraws());
   }, [dispatch]);
 
   // ==========================
-  // snapshot للعد محليًا (يمكن حذفه إذا تريد عد محلي فقط بدون Firestore)
+  // محاكاة العد المحلي فقط
   // ==========================
-  // يمكنك حذف هذا الجزء إذا كنت لا تريد استخدام Firestore على الإطلاق
-  // ==========================
-
   const handlePrizeClick = (draw: Draw) => {
     const max = draw.maxParticipants || 0;
     const participantsCount = typeof participantsCounts[draw.offerId || draw.id] === "number"
       ? participantsCounts[draw.offerId || draw.id]
       : 0;
+
     const remaining = Math.max(max - participantsCount, 0);
 
-    if (max > 0 && remaining <= 0) {
-      return; // السحب مكتمل، لن يحدث شيء
+    if (max > 0 && participantsCount >= max) {
+      toast({
+        title: "السحب مكتمل",
+        description: "لقد اكتمل العدد المطلوب لهذا السحب",
+        variant: "destructive",
+      });
+      return;
     }
 
     setSelectedPrize({ ...draw, prizeValue: Number(draw.prizeValue) || 0 });
@@ -72,7 +84,7 @@ const Index = () => {
   };
 
   // ==========================
-  // handleParticipation بدون إرسال بيانات
+  // التعامل مع المشاركة (بدون إرسال Firebase)
   // ==========================
   const handleParticipation = (email: string) => {
     if (!selectedPrize) return;
@@ -84,8 +96,22 @@ const Index = () => {
       return { ...prev, maxParticipants: updatedMax };
     });
 
-    // إغلاق المودال بدون رسالة نجاح
+    // تحديث العد المحلي لمجموعة المشاركين
+    setParticipantsCounts((prev) => {
+      const key = selectedPrize?.offerId || selectedPrize?.id || "__no_prize__";
+      const prevCount = prev[key] || 0;
+      return { ...prev, [key]: prevCount + 1 };
+    });
+
     setShowParticipationModal(false);
+    toast({
+      title: "تم حجز مقعدك!",
+      description: "تم تسجيل مشاركتك محليًا بدون إرسال بيانات.",
+    });
+  };
+
+  const handleSuccessModalContinue = () => {
+    setShowSocialModal(true);
   };
 
   return (
@@ -99,6 +125,7 @@ const Index = () => {
               <Trophy className="w-5 h-5 mr-2 text-yellow-400" />
               <span className="text-yellow-300 font-semibold">{t('site.subtitle')}</span>
             </div>
+
             <h1 className="text-5xl md:text-7xl font-bold mb-12 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
               {t('site.title')}
             </h1>
@@ -121,8 +148,8 @@ const Index = () => {
               draws
                 .filter((draw) => draw.status === "active")
                 .map((draw) => {
-                  const participantsCount = typeof participantsCounts[draw.id] === "number"
-                    ? participantsCounts[draw.id]
+                  const participantsCount = typeof participantsCounts[draw.offerId || draw.id] === "number"
+                    ? participantsCounts[draw.offerId || draw.id]
                     : 0;
                   const max = draw.maxParticipants || 0;
                   const remaining = Math.max(max - participantsCount, 0);
