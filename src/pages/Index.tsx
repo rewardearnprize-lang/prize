@@ -1,4 +1,4 @@
-// src/pages/Index.tsx
+F// src/pages/Index.tsx
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -231,7 +231,7 @@ const Index = () => {
               <span className="text-yellow-300 font-semibold">{t('site.subtitle')}</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-green-400 to-orange-500 bg-clip-text text-transparent">
               {t('site.title')}
             </h1>
             {/* ... بقية Hero UI ... */}
