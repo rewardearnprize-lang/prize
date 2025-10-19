@@ -204,7 +204,7 @@ const ParticipationModal = ({
 
         <div className="space-y-6">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4 space-y-3">
+            // <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">Remaining slots:</span>
                 <Badge variant="secondary">{remaining}</Badge>
