@@ -265,22 +265,26 @@ const Index = () => {
                     <Card key={draw.id} className="bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
                       <CardHeader className="text-center">
                         {imageUrl ? (
-                <div className="flex justify-center">
-                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
-                    <img 
-                      src={imageUrl} 
-                      alt={prize.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // إذا فشل تحميل الصورة، عرض أيقونة بديلة
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="text-4xl">🎁</div>
-              )}
+           <div className="flex justify-center">
+  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
+    {draw.image || draw.imageUrl ? (
+      <img
+        src={draw.image || draw.imageUrl}
+        alt={draw.name}
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          // إخفاء الصورة في حال فشل التحميل
+          e.currentTarget.style.display = "none";
+        }}
+      />
+    ) : (
+      <div className="flex items-center justify-center w-full h-full text-4xl bg-black/20 text-white">
+        🎁
+      </div>
+    )}
+  </div>
+</div>
+}
                         <CardTitle className="text-white">{draw.name}</CardTitle>
                         <CardDescription className="text-green-400 text-2xl font-bold">
                           {draw.prize || "جائزة"} - ${Number(draw.prizeValue) || 0}
