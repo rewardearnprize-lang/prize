@@ -264,8 +264,7 @@ const Index = () => {
                   return (
                     <Card key={draw.id} className="bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
                       <CardHeader className="text-center">
-                        {imageUrl ? (
-           <div className="flex justify-center">
+                        <div className="flex justify-center">
   <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
     {draw.image || draw.imageUrl ? (
       <img
@@ -284,7 +283,7 @@ const Index = () => {
     )}
   </div>
 </div>
-}
+
                         <CardTitle className="text-white">{draw.name}</CardTitle>
                         <CardDescription className="text-green-400 text-2xl font-bold">
                           {draw.prize || "جائزة"} - ${Number(draw.prizeValue) || 0}
