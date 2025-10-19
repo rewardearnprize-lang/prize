@@ -194,11 +194,78 @@ const Index = () => {
     setShowParticipationModal(true);
   };
 
-  const handleParticipation = (email: string) => {
-    if (selectedPrize) {
-      localStorage.setItem("currentUserEmail", email);
+  const handleParticipation = async (email: string) => {
+  if (!selectedPrize) return;
+
+  try {
+    localStorage.setItem("currentUserEmail", email);
+
+    const prizeId = selectedPrize.id;
+    const prizeRef = doc(firestore, "draws", prizeId);
+    const prizeSnap = await getDoc(prizeRef);
+
+    if (!prizeSnap.exists()) {
+      console.error("Prize not found in Firestore");
+      return;
     }
-  };
+
+    const prizeData = prizeSnap.data() as Draw;
+
+    // التحقق من توفر أماكن المشاركة
+    if (prizeData.maxParticipants && prizeData.maxParticipants > 0) {
+      // حفظ مشاركة المستخدم
+      const uid = localStorage.getItem("currentUserUID") || generateUID();
+      localStorage.setItem("currentUserUID", uid);
+
+      await setDoc(
+        doc(firestore, "participants", uid),
+        {
+          email: email,
+          prize: prizeData.name,
+          prizeId: prizeId,
+          offerId: prizeData.offerId || prizeId,
+          verified: true,
+          status: "completed",
+          timestamp: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // إنقاص العدد المتبقي من المشاركين
+      await updateDoc(prizeRef, {
+        maxParticipants: prizeData.maxParticipants - 1,
+      });
+
+      // تحديث العدد في الواجهة مباشرة بدون انتظار Firestore
+      setSelectedPrize({
+        ...selectedPrize,
+        maxParticipants: prizeData.maxParticipants - 1,
+      });
+
+      toast({
+        title: "تم الاشتراك بنجاح 🎉",
+        description: "تم حجز مقعدك في هذا السحب!",
+      });
+
+      setShowParticipationModal(false);
+      setShowSuccessModal(true);
+    } else {
+      toast({
+        title: "السحب مكتمل ❌",
+        description: "لقد اكتمل العدد المطلوب لهذا السحب.",
+        variant: "destructive",
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error while participating:", error);
+    toast({
+      title: "حدث خطأ أثناء الاشتراك",
+      description: String(error),
+      variant: "destructive",
+    });
+  }
+};
+
 
   const handleSuccessModalContinue = () => {
     setShowSuccessModal(false);
