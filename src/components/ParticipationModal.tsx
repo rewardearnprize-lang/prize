@@ -169,7 +169,7 @@ const ParticipationModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
  
  <DialogContent
-  className="max-w-lg max-h-[90vh] overflow-y-auto bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 m-6 rounded-2xl"
+  className="max-w-lg max-h-[90vh] bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 m-6 rounded-2xl"
 >
         <DialogHeader>
           <DialogTitle className="text-center">
@@ -177,7 +177,7 @@ const ParticipationModal = ({
               {/* عرض الصورة إذا كانت موجودة */}
               {imageUrl ? (
                 <div className="flex justify-center">
-                  <div className="relative w-20 h-16 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
+                  <div className="relative w-18 h-18 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
                     <img 
                       src={imageUrl} 
                       alt={prize.name}
