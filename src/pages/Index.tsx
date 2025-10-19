@@ -1,4 +1,4 @@
-F// src/pages/Index.tsx
+// src/pages/Index.tsx
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
