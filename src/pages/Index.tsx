@@ -220,7 +220,7 @@ const Index = () => {
   // بقية الكود الأصلي (UI، Hero، Cards، Modals) بدون تغيير
   // ==========================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen min-w-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
