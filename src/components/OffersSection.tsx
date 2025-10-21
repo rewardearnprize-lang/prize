@@ -69,6 +69,7 @@ const OffersSection = () => {
 
       {offers.length === 0 ? (
         <p className="text-center text-gray-400">{t("offers.noOffers")}</p>
+      <p className="text-center text-white">✅ OffersSection Loaded</p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {offers.map((offer) => {
