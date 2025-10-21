@@ -76,53 +76,67 @@ const OffersSection = () => {
             const IconComponent = availability.icon;
 
             return (
-              <Card
-                key={offer.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 flex flex-col items-center p-6"
-              >
-                {offer.iconText && (
-                  <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
-                    {offer.iconText}
-                  </div>
-                )}
+    <Card
+  key={offer.id}
+  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 flex flex-col items-center p-6"
+>
+  {/* ✅ عرض صورة العرض */}
+  {offer.icon || offer.image ? (
+    <div className="mb-4 w-24 h-24 rounded-full overflow-hidden border-4 border-purple-400 shadow-lg">
+      <img
+        src={offer.icon || offer.image}
+        alt={offer.title}
+        className="w-full h-full object-cover"
+        onError={(e) => (e.currentTarget.style.display = 'none')}
+      />
+    </div>
+  ) : offer.iconText ? (
+    <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
+      {offer.iconText}
+    </div>
+  ) : (
+    <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
+      🎁
+    </div>
+  )}
 
-                <CardHeader className="text-center p-0 mb-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Badge className={`${getDifficultyColor(offer.points)} text-white mx-1`}>
-                      {offer.points <= 20 ? "سهل" : offer.points <= 50 ? "متوسط" : "صعب"}
-                    </Badge>
-                    <div className={`flex items-center ${availability.color} mx-1`}>
-                      <IconComponent className="w-4 h-4 mr-1" />
-                      <span className="text-sm font-medium">{availability.status}</span>
-                    </div>
-                  </div>
-                  <CardTitle className="text-white text-xl">{offer.title}</CardTitle>
-                  <CardDescription className="text-gray-300 text-sm">{offer.description}</CardDescription>
-                </CardHeader>
+  <CardHeader className="text-center p-0 mb-4">
+    <div className="flex items-center justify-center mb-2">
+      <Badge className={`${getDifficultyColor(offer.points)} text-white mx-1`}>
+        {offer.points <= 20 ? "سهل" : offer.points <= 50 ? "متوسط" : "صعب"}
+      </Badge>
+      <div className={`flex items-center ${getAvailabilityStatus(offer).color} mx-1`}>
+        <(getAvailabilityStatus(offer).icon) className="w-4 h-4 mr-1" />
+        <span className="text-sm font-medium">{getAvailabilityStatus(offer).status}</span>
+      </div>
+    </div>
+    <CardTitle className="text-white text-xl">{offer.title}</CardTitle>
+    <CardDescription className="text-gray-300 text-sm">{offer.description}</CardDescription>
+  </CardHeader>
 
-                <CardContent className="space-y-4 w-full">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">{t("label.reward")}</span>
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                      {offer.points} {t("label.points")}
-                    </Badge>
-                  </div>
+  <CardContent className="space-y-4 w-full">
+    <div className="flex items-center justify-between">
+      <span className="text-gray-300">{t("label.reward")}</span>
+      <Badge variant="secondary" className="bg-green-500/20 text-green-400">
+        {offer.points} {t("label.points")}
+      </Badge>
+    </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">{t("label.category")}</span>
-                    <span className="text-white font-medium">{offer.category}</span>
-                  </div>
+    <div className="flex items-center justify-between">
+      <span className="text-gray-300">{t("label.category")}</span>
+      <span className="text-white font-medium">{offer.category}</span>
+    </div>
 
-                  <Button
-                    onClick={() => handleOfferClick(offer)}
-                    disabled={offer.status !== "active"}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    {offer.status !== "active" ? t("status.completed") : t("button.startOffer")}
-                  </Button>
-                </CardContent>
-              </Card>
+    <Button
+      onClick={() => handleOfferClick(offer)}
+      disabled={offer.status !== "active"}
+      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+    >
+      <ExternalLink className="w-4 h-4 mr-2" />
+      {offer.status !== "active" ? t("status.completed") : t("button.startOffer")}
+    </Button>
+  </CardContent>
+</Card>
             );
           })}
         </div>
