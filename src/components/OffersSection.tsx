@@ -106,7 +106,10 @@ const OffersSection = () => {
         {offer.points <= 20 ? "سهل" : offer.points <= 50 ? "متوسط" : "صعب"}
       </Badge>
       <div className={`flex items-center ${getAvailabilityStatus(offer).color} mx-1`}>
-        <(getAvailabilityStatus(offer).icon) className="w-4 h-4 mr-1" />
+{(() => {
+  const Icon = getAvailabilityStatus(offer).icon;
+  return <Icon className="w-4 h-4 mr-1" />;
+})()}
         <span className="text-sm font-medium">{getAvailabilityStatus(offer).status}</span>
       </div>
     </div>
