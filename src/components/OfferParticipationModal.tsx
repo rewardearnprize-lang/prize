@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Users, Gift, Sparkles, Target } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Users, Gift, Sparkles, Target, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { firestore } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from "firebase/firestore";
@@ -60,7 +60,7 @@ const OfferParticipationModal = ({
   useEffect(() => {
     if (isOpen && offerId) {
       fetchJoinedCount();
-      setInputValue(""); // Reset input when modal opens
+      setInputValue("");
     }
   }, [isOpen, offerId]);
 
@@ -159,8 +159,9 @@ const OfferParticipationModal = ({
 
   const remaining = maxParticipants ? maxParticipants - joinedCount : 0;
 
-  // Handle Cancel button properly
+  // Handle Cancel button
   const handleCancel = () => {
+    console.log("Cancel button clicked"); // للتصحيح
     setInputValue("");
     onClose();
   };
@@ -170,17 +171,21 @@ const OfferParticipationModal = ({
                        (offerImage.startsWith('http') || offerImage.startsWith('https'));
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        handleCancel();
-      }
-    }}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
+    <Dialog open={isOpen}>
+      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0 relative">
+        {/* Close Button */}
+        <button
+          onClick={handleCancel}
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 group"
+        >
+          <X className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+        </button>
+        
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
         
         <div className="relative z-10">
-          {/* Image Section - Full Width like Main Page */}
+          {/* Image Section */}
           <div className="w-full h-40 relative overflow-hidden group">
             {hasValidImage ? (
               <>
@@ -189,7 +194,6 @@ const OfferParticipationModal = ({
                   alt={offerTitle}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   onError={(e) => {
-                    // If image fails to load, show default design
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
@@ -206,16 +210,12 @@ const OfferParticipationModal = ({
                     }
                   }}
                 />
-                {/* Overlay effect */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
               </>
             ) : (
-              // Default card design for offers with Target icon
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
-                {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
                 
-                {/* Floating particles */}
                 <div className="absolute inset-0">
                   {[...Array(5)].map((_, i) => (
                     <div
@@ -231,7 +231,6 @@ const OfferParticipationModal = ({
                   ))}
                 </div>
 
-                {/* Content with Target icon */}
                 <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110">
                   <Target className="w-12 h-12 text-white mx-auto mb-2 animate-bounce" />
                   <div className="text-xl font-bold text-white">
@@ -239,7 +238,6 @@ const OfferParticipationModal = ({
                   </div>
                 </div>
 
-                {/* Shine effect on hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
               </div>
             )}
@@ -252,7 +250,6 @@ const OfferParticipationModal = ({
                   Join Offer
                 </h2>
                 
-                {/* Prize Value Badge */}
                 {prizeValue && (
                   <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-3 py-1.5 rounded-full shadow-lg animate-pulse">
                     <Gift className="w-3 h-3 mr-1" />
@@ -260,7 +257,6 @@ const OfferParticipationModal = ({
                   </Badge>
                 )}
 
-                {/* Participants Counter */}
                 {maxParticipants && (
                   <div className="flex items-center justify-center space-x-4 text-sm">
                     <div className="flex items-center text-blue-300">
@@ -279,7 +275,6 @@ const OfferParticipationModal = ({
         </div>
 
         <div className="space-y-5 relative z-10 px-6 pb-6">
-          {/* Progress Bar for Participants */}
           {maxParticipants && (
             <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden">
               <CardContent className="p-3 space-y-2">
@@ -303,7 +298,6 @@ const OfferParticipationModal = ({
           )}
 
           <div className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
-            {/* Input Field with Enhanced Design */}
             <div className="space-y-2">
               <label className="block text-white font-medium text-sm flex items-center">
                 {participationType === "id" ? (
@@ -327,12 +321,10 @@ const OfferParticipationModal = ({
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
                   required
                 />
-                {/* Input glow effect */}
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
               </div>
             </div>
 
-            {/* Enhanced Steps Card */}
             <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300">
               <CardContent className="p-4">
                 <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
@@ -360,14 +352,12 @@ const OfferParticipationModal = ({
               </CardContent>
             </Card>
 
-            {/* Enhanced Buttons with Animations */}
             <div className="flex space-x-3 pt-2">
               <Button
                 onClick={handleSubmit}
                 disabled={loading || (maxParticipants && remaining <= 0)}
                 className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
               >
-                {/* Shine effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                 
                 {loading ? (
@@ -385,18 +375,15 @@ const OfferParticipationModal = ({
 
               <Button
                 type="button"
-                variant="outline"
                 onClick={handleCancel}
                 className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
               >
-                {/* Shine effect for cancel button */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                 <span className="relative z-10">Cancel</span>
               </Button>
             </div>
           </div>
 
-          {/* Security Badge */}
           <div className="text-center">
             <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1 px-3 animate-pulse">
               🔒 Secure & Encrypted
@@ -404,7 +391,6 @@ const OfferParticipationModal = ({
           </div>
         </div>
 
-        {/* Custom Animations */}
         <style jsx>{`
           @keyframes shimmer {
             0% { transform: translateX(-100%) rotate(45deg); }
