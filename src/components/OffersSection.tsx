@@ -96,8 +96,8 @@ const OffersSection = () => {
             // التحقق من وجود صورة
             const hasImage = offer.iconText || offer.imageUrl;
             
-            // الحصول على اسم البطاقة مع قيمة افتراضية
-            const cardTitle = offer.cardTitle || offer.title || "Gift Card";
+            // استخدام cardTitle فقط مع قيمة افتراضية
+            const cardTitle = offer.cardTitle || "Special Offer";
 
             return (
               <Card
@@ -120,7 +120,7 @@ const OffersSection = () => {
                           defaultCard.innerHTML = `
                             <div class="text-center animate-pulse">
                               <div class="text-4xl mb-2 animate-bounce">🎁</div>
-                              <div class="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">${cardTitle}</div>
+                              <div class="text-3xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent px-2 leading-tight">${cardTitle}</div>
                             </div>
                           `;
                           cardElement.appendChild(defaultCard);
@@ -131,7 +131,7 @@ const OffersSection = () => {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
                   </div>
                 ) : (
-                  // البطاقة الافتراضية عندما لا توجد صورة - تصميم متحرك
+                  // البطاقة الافتراضية عندما لا توجد صورة - استخدام cardTitle فقط
                   <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
                     {/* Animated background */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
@@ -152,19 +152,11 @@ const OffersSection = () => {
                       ))}
                     </div>
 
-                    {/* Content with animations */}
-                    <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110">
-                      <div className="text-4xl mb-2 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
-                      <div className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-pulse group-hover:animate-none">
-                        {cardTitle.split(' ').map((word, index) => (
-                          <span
-                            key={index}
-                            className="inline-block transition-transform duration-500 group-hover:scale-110 group-hover:translate-y-[-2px]"
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                          >
-                            {word}{' '}
-                          </span>
-                        ))}
+                    {/* Content with animations - استخدام cardTitle فقط */}
+                    <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110 w-full px-4">
+                      <div className="text-4xl mb-3 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
+                      <div className="text-3xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-pulse group-hover:animate-none leading-tight break-words whitespace-normal">
+                        {cardTitle}
                       </div>
                     </div>
 
@@ -224,7 +216,7 @@ const OffersSection = () => {
       {selectedOffer && (
         <OfferParticipationModal
           isOpen={showModal}
-          onClose={() => setShowModal(false)}
+          onOpenChange={setShowModal}
           offerId={selectedOffer.id}
           offerTitle={selectedOffer.title}
           offerLink={selectedOffer.offerurl || ""}
