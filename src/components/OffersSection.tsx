@@ -109,9 +109,9 @@ const OffersSection = () => {
                     />
                   </div>
                 ) : (
-                  <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
-                    Gift Card
-                  </div>
+                 <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-2xl font-bold">
+    Gift Card
+  </div>
                 )}
 
                 {/* Offer Content */}
