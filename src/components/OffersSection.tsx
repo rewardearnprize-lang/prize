@@ -109,10 +109,10 @@ const OffersSection = () => {
                 className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 flex flex-col items-center p-6"
               >
                 {/* ✅ صورة العرض */}
-                {offer.icon || offer.image ? (
+                {offer.iconText || offer.image ? (
                   <div className="mb-4 w-24 h-24 rounded-full overflow-hidden border-4 border-purple-400 shadow-lg">
                     <img
-                      src={offer.icon || offer.image}
+                      src={offer.iconText || offer.image}
                       alt={offer.title}
                       className="w-full h-full object-cover"
                       onError={(e) =>
