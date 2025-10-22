@@ -1,368 +1,496 @@
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Image as ImageIcon, Users, Gift, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Plus, Edit, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
-import { firestore } from "@/lib/firebase";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchOffers,
+  addOffer,
+  updateOffer,
+  deleteOffer,
+  toggleOfferStatus,
+  type Offer,
+} from "@/store/slices/offersSlice";
 
-interface ParticipationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  prize: {
-    id: string;
-    name: string;
-    image?: string;
-    imageUrl?: string;
-    prizeValue?: number;
-    value?: string;
-    maxParticipants?: number;
-    offerUrl?: string;
-    participationType?: "email" | "id";
-  } | null;
-  onParticipate: (inputValue: string) => void;
-}
-
-const ParticipationModal = ({
-  isOpen,
-  onClose,
-  prize,
-  onParticipate,
-}: ParticipationModalProps) => {
-  const [inputValue, setInputValue] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [joinedCount, setJoinedCount] = useState(0);
+const OffersManagement = () => {
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
+  const { offers, loading, error } = useAppSelector((state) => state.offers);
 
-  const fetchJoinedCount = async () => {
-    if (!prize) return;
-    try {
-      const q = query(
-        collection(firestore, "participants"),
-        where("prizeId", "==", prize.id),
-        where("verified", "==", true)
-      );
-      const snap = await getDocs(q);
-      setJoinedCount(snap.size);
-    } catch (err) {
-      console.error("Error fetching joined count:", err);
-    }
-  };
+  const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  // ✅ State مضبوط
+  const [newOffer, setNewOffer] = useState<{
+    title: string;
+    description: string;
+    points: number;
+    category: string;
+    offerurl: string;
+    iconText: string;
+    participationType: "id" | "email";
+    cardTitle: string; // ✅ إضافة حقل جديد لاسم البطاقة
+  }>({
+    title: "",
+    description: "",
+    points: 0,
+    category: "social",
+    offerurl: "",
+    iconText: "🎁",
+    participationType: "email",
+    cardTitle: "", // ✅ الحقل الجديد
+  });
 
   useEffect(() => {
-    if (isOpen && prize) {
-      fetchJoinedCount();
-      setInputValue(""); // Reset input when modal opens
-    }
-  }, [isOpen, prize]);
+    dispatch(fetchOffers());
+  }, [dispatch]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue || !prize) {
+  useEffect(() => {
+    if (error) {
       toast({
-        title: "Error",
-        description: `Please enter your ${prize?.participationType || "email"}.`,
+        title: "خطأ",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  const normalizeUrl = (url: string) => {
+    if (!url) return "";
+    return /^https?:\/\//i.test(url) ? url : "https://" + url;
+  };
+
+  const normalizeParticipationType = (value: string | undefined): "email" | "id" => {
+    return value === "id" ? "id" : "email";
+  };
+
+  const handleAddOffer = async () => {
+    if (!newOffer.title || !newOffer.description || !newOffer.offerurl) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
         variant: "destructive",
       });
       return;
     }
 
-    if (isSubmitting) return;
+    const finalLink = normalizeUrl(newOffer.offerurl);
 
-    setIsSubmitting(true);
+    const result = await dispatch(
+      addOffer({
+        ...newOffer,
+        participationType: normalizeParticipationType(newOffer.participationType),
+        offerurl: finalLink,
+        status: "active",
+        imageUrl: "",
+        cardTitle: newOffer.cardTitle || newOffer.title, // ✅ استخدام cardTitle أو العنوان الافتراضي
+      })
+    );
 
-    try {
-      const uniqueKey =
-        "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-
-      await setDoc(doc(firestore, "participants", uniqueKey), {
-        [prize?.participationType || "email"]: inputValue,
-        prize: prize.name,
-        prizeId: prize.id,
-        status: "pending",
-        joinDate: new Date().toISOString(),
-        verified: false,
-        key: uniqueKey,
+    if (addOffer.fulfilled.match(result)) {
+      setNewOffer({
+        title: "",
+        description: "",
+        points: 0,
+        category: "social",
+        offerurl: "",
+        iconText: "🎁",
+        participationType: "email",
+        cardTitle: "", // ✅ إعادة تعيين الحقل
       });
-
-      console.log("✅ Participant added with key:", uniqueKey);
-
-      if (prize.offerUrl) {
-        let offerUrlWithParams = `${prize.offerUrl}${
-          prize.offerUrl.includes("?") ? "&" : "?"
-        }aff_sub4=${encodeURIComponent(uniqueKey)}&aff_sub5=${encodeURIComponent(inputValue)}`;
-
-        const ua = navigator.userAgent || (navigator as any).vendor || (window as any).opera;
-        const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
-
-        if (isMobile) {
-          offerUrlWithParams = offerUrlWithParams.replace("/cl/i/", "/cl/v/");
-        }
-
-        const newTab = window.open("about:blank", "_blank");
-
-        if (newTab) {
-          setTimeout(() => {
-            try {
-              newTab.location.href = offerUrlWithParams;
-            } catch (err) {
-              console.warn("Could not set newTab.location.href:", err);
-              window.location.href = offerUrlWithParams;
-            }
-          }, 100);
-        } else {
-          window.location.href = offerUrlWithParams;
-        }
-      } else {
-        console.warn("⚠️ No offerUrl in this prize");
-      }
-
-      onParticipate(inputValue);
-      setInputValue("");
-      onClose();
-
+      setShowAddDialog(false);
       toast({
-        title: "Participation Registered 🎉",
-        description: "Check your entry on the verification page to confirm participation.",
+        title: "تم بنجاح",
+        description: "تم إضافة العرض الجديد",
       });
-    } catch (error) {
-      console.error("Error adding participation:", error);
-      toast({
-        title: "Error",
-        description: "There was an error registering your participation. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (!prize) return null;
+  const handleEditOfferSave = async () => {
+    if (!editingOffer) return;
+    const finalLink = normalizeUrl(editingOffer.offerurl || "");
 
-  const remaining = prize.maxParticipants
-    ? prize.maxParticipants - joinedCount
-    : 0;
+    const result = await dispatch(
+      updateOffer({
+        id: editingOffer.id,
+        offerData: {
+          ...editingOffer,
+          participationType: normalizeParticipationType(editingOffer.participationType),
+          offerurl: finalLink,
+          cardTitle: editingOffer.cardTitle || editingOffer.title, // ✅ استخدام cardTitle أو العنوان الافتراضي
+        },
+      })
+    );
 
-  const imageUrl = prize.imageUrl || prize.image;
+    if (updateOffer.fulfilled.match(result)) {
+      setShowEditDialog(false);
+      setEditingOffer(null);
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث العرض",
+      });
+    }
+  };
+
+  const handleDeleteOffer = async (id: string) => {
+    const result = await dispatch(deleteOffer(id));
+    if (deleteOffer.fulfilled.match(result)) {
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف العرض بنجاح",
+      });
+    }
+  };
+
+  const handleToggleOfferStatus = async (id: string, currentStatus: "active" | "inactive") => {
+    await dispatch(toggleOfferStatus({ id, currentStatus }));
+  };
+
+  const handleEditOffer = (offer: Offer) => {
+    setEditingOffer({
+      ...offer,
+      participationType: normalizeParticipationType(offer.participationType),
+    });
+    setShowEditDialog(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    return status === "active" ? (
+      <Badge className="bg-green-500/20 text-green-400">نشط</Badge>
+    ) : (
+      <Badge className="bg-red-500/20 text-red-400">متوقف</Badge>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 group"
-        >
-          <X className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-        </button>
-        
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
-        
-        <DialogHeader className="relative z-10 pt-6 px-6 pb-4">
-          <DialogTitle className="text-center">
-            <div className="space-y-4">
-              {/* Enhanced Image Display */}
-              {imageUrl ? (
-                <div className="flex justify-center">
-                  <div className="relative group">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white/30 shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:border-white/50">
-                      <img 
-                        src={imageUrl} 
-                        alt={prize.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            parent.innerHTML = `
-                              <div class="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                <Gift className="w-6 h-6 text-white" />
-                              </div>
-                            `;
-                          }
-                        }}
-                      />
-                    </div>
-                    {/* Floating particles around image */}
-                    <div className="absolute -inset-1">
-                      {[...Array(2)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute w-1 h-1 bg-yellow-400 rounded-full animate-ping"
-                          style={{
-                            left: `${20 + i * 60}%`,
-                            top: `${20 + i * 60}%`,
-                            animationDelay: `${i * 0.3}s`
-                          }}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
+    <div className="space-y-6">
+      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-white">إدارة العروض</CardTitle>
+
+          {/* Add Offer Dialog */}
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-green-500 hover:bg-green-600">
+                <Plus className="w-4 h-4 mr-2" />
+                إضافة عرض جديد
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gray-900 border-gray-700">
+              <DialogHeader>
+                <DialogTitle className="text-white">إضافة عرض جديد</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <InputField
+                  label="عنوان العرض"
+                  value={newOffer.title}
+                  placeholder="مثال: تحميل التطبيق"
+                  onChange={(val) => setNewOffer({ ...newOffer, title: val })}
+                />
+                <InputField
+                  label="اسم البطاقة (عند عدم وجود صورة)"
+                  value={newOffer.cardTitle}
+                  placeholder="مثال: بطاقة هدايا أمازون"
+                  onChange={(val) => setNewOffer({ ...newOffer, cardTitle: val })}
+                />
+                <InputField
+                  label="الوصف"
+                  value={newOffer.description}
+                  placeholder="وصف تفصيلي للعرض"
+                  onChange={(val) => setNewOffer({ ...newOffer, description: val })}
+                />
+                <InputField
+                  label="النقاط"
+                  type="number"
+                  value={newOffer.points}
+                  placeholder="مثال: 10"
+                  onChange={(val) => setNewOffer({ ...newOffer, points: parseInt(val) })}
+                />
+                <InputField
+                  label="الفئة"
+                  value={newOffer.category}
+                  placeholder="مثال: تطبيقات، ألعاب، تسوق"
+                  onChange={(val) => setNewOffer({ ...newOffer, category: val })}
+                />
+                <InputField
+                  label="رابط العرض"
+                  type="url"
+                  value={newOffer.offerurl}
+                  placeholder="مثال: https://example.com"
+                  onChange={(val) => setNewOffer({ ...newOffer, offerurl: val })}
+                />
+                <InputField
+                  label="الأيقونة"
+                  value={newOffer.iconText}
+                  placeholder="أدخل أي رمز مثل 🎁"
+                  onChange={(val) => setNewOffer({ ...newOffer, iconText: val })}
+                />
+                {/* نوع المشاركة */}
+                <div>
+                  <Label className="text-gray-300">نوع المشاركة</Label>
+                  <select
+                    value={newOffer.participationType}
+                    onChange={(e) =>
+                      setNewOffer({
+                        ...newOffer,
+                        participationType: normalizeParticipationType(e.target.value),
+                      })
+                    }
+                    className="w-full bg-gray-800 border-gray-600 text-white rounded p-2"
+                  >
+                    <option value="email">بالبريد الإلكتروني</option>
+                    <option value="id">بـ ID</option>
+                  </select>
                 </div>
-              ) : (
-                <div className="flex justify-center">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-xl">
-                      <Gift className="w-6 h-6 text-white" />
-                    </div>
-                    {/* Animated rings */}
-                    <div className="absolute inset-0 rounded-lg border-2 border-purple-400/30 animate-ping"></div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                    إلغاء
+                  </Button>
+                  <Button onClick={handleAddOffer} className="bg-green-500 hover:bg-green-600">
+                    إضافة العرض
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Offer Dialog */}
+          <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+            <DialogContent className="bg-gray-900 border-gray-700">
+              <DialogHeader>
+                <DialogTitle className="text-white">تعديل العرض</DialogTitle>
+              </DialogHeader>
+              {editingOffer && (
+                <div className="space-y-4">
+                  <InputField
+                    label="عنوان العرض"
+                    value={editingOffer.title}
+                    onChange={(val) => setEditingOffer({ ...editingOffer, title: val })}
+                  />
+                  <InputField
+                    label="اسم البطاقة (عند عدم وجود صورة)"
+                    value={editingOffer.cardTitle || ""}
+                    placeholder="مثال: بطاقة هدايا أمازون"
+                    onChange={(val) => setEditingOffer({ ...editingOffer, cardTitle: val })}
+                  />
+                  <InputField
+                    label="الوصف"
+                    value={editingOffer.description || ""}
+                    onChange={(val) => setEditingOffer({ ...editingOffer, description: val })}
+                  />
+                  <InputField
+                    label="النقاط"
+                    type="number"
+                    value={editingOffer.points}
+                    onChange={(val) =>
+                      setEditingOffer({ ...editingOffer, points: parseInt(val) })
+                    }
+                  />
+                  <InputField
+                    label="الفئة"
+                    value={editingOffer.category || ""}
+                    onChange={(val) => setEditingOffer({ ...editingOffer, category: val })}
+                  />
+                  <InputField
+                    label="رابط العرض"
+                    type="url"
+                    value={editingOffer.offerurl || ""}
+                    onChange={(val) => setEditingOffer({ ...editingOffer, offerurl: val })}
+                  />
+                  <InputField
+                    label="الأيقونة"
+                    value={editingOffer.iconText || ""}
+                    placeholder="أدخل أي رمز مثل 🎁"
+                    onChange={(val) => setEditingOffer({ ...editingOffer, iconText: val })}
+                  />
+                  {/* نوع المشاركة */}
+                  <div>
+                    <Label className="text-gray-300">نوع المشاركة</Label>
+                    <select
+                      value={editingOffer.participationType || "email"}
+                      onChange={(e) =>
+                        setEditingOffer({
+                          ...editingOffer,
+                          participationType: normalizeParticipationType(e.target.value),
+                        })
+                      }
+                      className="w-full bg-gray-800 border-gray-600 text-white rounded p-2"
+                    >
+                      <option value="email">بالبريد الإلكتروني</option>
+                      <option value="id">بـ ID</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEditDialog(false)}
+                    >
+                      إلغاء
+                    </Button>
+                    <Button onClick={handleEditOfferSave} className="bg-blue-500 hover:bg-blue-600">
+                      تحديث العرض
+                    </Button>
                   </div>
                 </div>
               )}
-              
-              {/* Prize Info with Animations */}
-              <div className="space-y-3 animate-in slide-in-from-top-5 duration-500">
-                <h2 className="text-xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Enter the Draw
-                </h2>
-                <p className="text-base text-gray-200 font-medium leading-tight">{prize.name}</p>
-                
-                {/* Prize Value Badge */}
-                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg">
-                  <Gift className="w-3 h-3 mr-1" />
-                  Prize: ${prize.prizeValue || prize.value}
-                </Badge>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
 
-                {/* Participants Counter */}
-                {prize.maxParticipants && (
-                  <div className="flex items-center justify-center space-x-3 text-xs">
-                    <div className="flex items-center text-blue-300">
-                      <Users className="w-3 h-3 mr-1" />
-                      <span>{joinedCount} joined</span>
-                    </div>
-                    <div className="flex items-center text-green-300">
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span>{remaining} left</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+        <CardContent>
+          {offers.length === 0 ? (
+            <div className="text-center text-gray-400 py-12">
+              <div className="text-6xl mb-4">🎁</div>
+              <p className="text-xl">لا توجد عروض حالياً</p>
+              <p className="text-sm text-gray-500 mt-2">قم بإضافة عرض جديد للبدء</p>
             </div>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-5 relative z-10 px-6 pb-6">
-          <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
-            {/* Input Field with Enhanced Design */}
-            <div className="space-y-2">
-              <label className="block text-white font-medium text-sm flex items-center">
-                {prize.participationType === "id" ? (
-                  <IdCard className="w-3 h-3 mr-2" />
-                ) : (
-                  <Mail className="w-3 h-3 mr-2" />
-                )}
-                {prize.participationType === "id" ? "Enter Your ID" : "Enter Your Email"}
-                <span className="text-red-400 ml-1">*</span>
-              </label>
-              <div className="relative group">
-                <Input
-                  type={prize.participationType === "id" ? "text" : "email"}
-                  placeholder={
-                    prize.participationType === "id"
-                      ? "Your unique ID..."
-                      : "your.email@example.com"
-                  }
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10 rounded-lg text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
-                  required
-                />
-                {/* Input glow effect */}
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
-              </div>
-            </div>
-
-            {/* Enhanced Steps Card */}
-            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-lg overflow-hidden group hover:bg-white/15 transition-all duration-300">
-              <CardContent className="p-3">
-                <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
-                  <span className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
-                    ⚡
-                  </span>
-                  Quick Steps
-                </h4>
-                <div className="space-y-2">
-                  {[
-                    { step: 1, text: `Enter your ${prize.participationType === "id" ? "ID" : "email"}` },
-                    { step: 2, text: "Complete the offer" },
-                    { step: 3, text: "Wait for results" }
-                  ].map((item, index) => (
-                    <div 
-                      key={item.step}
-                      className="flex items-center text-gray-200 text-xs group-hover:text-white transition-colors duration-300"
-                    >
-                      <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2 shadow-lg">
-                        {item.step}
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {offers.map((offer) => (
+                <Card
+                  key={offer.id}
+                  className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg flex items-center justify-center text-xl">
+                          {offer.iconText || "🎁"}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-white text-lg">{offer.title}</h3>
+                          <p className="text-gray-400 text-sm">{offer.category}</p>
+                        </div>
                       </div>
-                      <span className="leading-tight">{item.text}</span>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleOfferStatus(offer.id, offer.status)}
+                          className={`${
+                            offer.status === "active"
+                              ? "border-red-500/50 text-red-400 hover:bg-red-500/20"
+                              : "border-green-500/50 text-green-400 hover:bg-green-500/20"
+                          }`}
+                        >
+                          {offer.status === "active" ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditOffer(offer)}
+                          className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteOffer(offer.id)}
+                          className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Enhanced Buttons */}
-            <div className="flex space-x-2 pt-1">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-10 rounded-lg text-sm transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Processing...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <ExternalLink className="w-3 h-3 mr-1.5 transition-transform duration-300 group-hover:scale-110" />
-                    Participate Now
-                  </div>
-                )}
-              </Button>
+                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                      {offer.description}
+                    </p>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="border-gray-400 text-gray-700 bg-white/90 hover:bg-white hover:text-gray-900 h-10 rounded-lg text-sm transition-all duration-300 transform hover:scale-[1.02] min-w-[80px]"
-              >
-                Cancel
-              </Button>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">النقاط:</span>
+                        <span className="text-green-400 font-medium">{offer.points || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">الحالة:</span>
+                        <span>{getStatusBadge(offer.status)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">اسم البطاقة:</span>
+                        <span className="text-white font-medium">
+                          {offer.cardTitle || offer.title}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">رابط العرض:</span>
+                        <a
+                          href={offer.offerurl}
+                          target="_blank"
+                          className="text-blue-400 underline"
+                        >
+                          {offer.offerurl}
+                        </a>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">نوع المشاركة:</span>
+                        <span className="text-white font-medium">
+                          {normalizeParticipationType(offer.participationType) === "email"
+                            ? "بالبريد"
+                            : "بـ ID"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </form>
-
-          {/* Security Badge */}
-          <div className="text-center">
-            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1 px-2">
-              🔒 Secure
-            </Badge>
-          </div>
-        </div>
-
-        {/* Custom Animations */}
-        <style jsx>{`
-          @keyframes shimmer {
-            0% { transform: translateX(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) rotate(45deg); }
-          }
-          .animate-shimmer {
-            animation: shimmer 3s ease-in-out infinite;
-          }
-        `}</style>
-      </DialogContent>
-    </Dialog>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-export default ParticipationModal;
+export default OffersManagement;
+
+interface InputFieldProps {
+  label: string;
+  value: string | number;
+  type?: string;
+  placeholder?: string;
+  onChange: (val: string) => void;
+}
+const InputField = ({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: InputFieldProps) => (
+  <div>
+    <Label className="text-gray-300">{label}</Label>
+    <Input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      className="bg-gray-800 border-gray-600 text-white"
+    />
+  </div>
+);
