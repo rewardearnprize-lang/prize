@@ -16,13 +16,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "@/hooks/useTranslation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOffers, type Offer } from "@/store/slices/offersSlice";
 import OfferParticipationModal from "@/components/OfferParticipationModal";
 
 const OffersSection = () => {
-  const { t } = useTranslation();
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { offers, loading } = useAppSelector((state) => state.offers);
@@ -34,35 +32,35 @@ const OffersSection = () => {
     dispatch(fetchOffers());
   }, [dispatch]);
 
-  // ✅ تحديد لون الصعوبة
+  // Difficulty color
   const getDifficultyColor = (points: number) => {
     if (points <= 20) return "bg-green-500";
     if (points <= 50) return "bg-yellow-500";
     return "bg-red-500";
   };
 
-  // ✅ تحديد الحالة (متاح / مكتمل)
+  // Availability status
   const getAvailabilityStatus = (offer: Offer) => {
     if (offer.status === "inactive") {
       return {
-        status: t("status.completed"),
+        status: "Completed",
         color: "text-red-500",
         icon: AlertCircle,
       };
     }
     return {
-      status: t("status.available"),
+      status: "Available",
       color: "text-green-500",
       icon: CheckCircle,
     };
   };
 
-  // ✅ التعامل مع الضغط على العرض
+  // On click offer
   const handleOfferClick = (offer: Offer) => {
     if (offer.status !== "active") {
       toast({
-        title: t("toast.offerCompleted.title"),
-        description: t("toast.offerCompleted.desc"),
+        title: "Offer already completed",
+        description: "You have already finished this offer.",
         variant: "destructive",
       });
       return;
@@ -71,7 +69,7 @@ const OffersSection = () => {
     setShowModal(true);
   };
 
-  // ✅ أثناء التحميل
+  // While loading
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -82,21 +80,23 @@ const OffersSection = () => {
 
   return (
     <div className="container mx-auto px-4 py-16 bg-gradient-to-b from-transparent to-black/20">
-      {/* العنوان */}
+      {/* Header */}
       <div className="text-center mb-12">
         <h2 className="text-4xl font-bold text-white mb-4">
-          {t("offers.title")}
+          Limited Time Offers
         </h2>
-        <p className="text-xl text-gray-300 mb-6">{t("offers.subtitle")}</p>
+        <p className="text-xl text-gray-300 mb-6">
+          Complete offers and earn rewards instantly
+        </p>
         <div className="inline-flex items-center bg-blue-500/20 backdrop-blur-sm rounded-full px-6 py-3">
           <Timer className="w-5 h-5 mr-2 text-blue-400" />
-          <span className="text-blue-300">{t("offers.limited")}</span>
+          <span className="text-blue-300">Active offers available now</span>
         </div>
       </div>
 
-      {/* ✅ في حالة عدم وجود عروض */}
+      {/* No offers */}
       {offers.length === 0 ? (
-        <p className="text-center text-gray-400">{t("offers.noOffers")}</p>
+        <p className="text-center text-gray-400">No offers available right now.</p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {offers.map((offer) => {
@@ -106,31 +106,25 @@ const OffersSection = () => {
             return (
               <Card
                 key={offer.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 flex flex-col items-center p-6"
+                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl flex flex-col items-center p-6"
               >
-                {/* ✅ صورة العرض */}
-                {offer.iconText || offer.image ? (
-                  <div className="mb-4 w-24 h-24 rounded-full overflow-hidden border-4 border-purple-400 shadow-lg">
+                {/* Offer Image (no circle) */}
+                {offer.image ? (
+                  <div className="mb-4 w-28 h-28 overflow-hidden rounded-xl border border-purple-400 shadow-md">
                     <img
-                      src={offer.iconText || offer.image}
+                      src={offer.image}
                       alt={offer.title}
                       className="w-full h-full object-cover"
-                      onError={(e) =>
-                        (e.currentTarget.style.display = "none")
-                      }
+                      onError={(e) => (e.currentTarget.style.display = "none")}
                     />
                   </div>
-            //    ) : offer.iconText ? (
-                //  <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
-                //    {offer.iconText}
-               //   </div>
                 ) : (
-                  <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
+                  <div className="mb-4 w-28 h-28 flex items-center justify-center rounded-xl bg-purple-500 text-4xl text-white shadow-md">
                     🎁
                   </div>
                 )}
 
-                {/* ✅ معلومات العرض */}
+                {/* Offer Info */}
                 <CardHeader className="text-center p-0 mb-4">
                   <div className="flex items-center justify-center mb-2">
                     <Badge
@@ -139,10 +133,10 @@ const OffersSection = () => {
                       )} text-white mx-1`}
                     >
                       {offer.points <= 20
-                        ? "سهل"
+                        ? "Easy"
                         : offer.points <= 50
-                        ? "متوسط"
-                        : "صعب"}
+                        ? "Medium"
+                        : "Hard"}
                     </Badge>
 
                     <div
@@ -155,7 +149,7 @@ const OffersSection = () => {
                     </div>
                   </div>
 
-                  <CardTitle className="text-white text-xl">
+                  <CardTitle className="text-white text-xl font-semibold">
                     {offer.title}
                   </CardTitle>
                   <CardDescription className="text-gray-300 text-sm">
@@ -163,36 +157,32 @@ const OffersSection = () => {
                   </CardDescription>
                 </CardHeader>
 
-                {/* ✅ تفاصيل إضافية */}
+                {/* Offer Details */}
                 <CardContent className="space-y-4 w-full">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300">{t("label.reward")}</span>
+                    <span className="text-gray-300 font-medium">Reward</span>
                     <Badge
                       variant="secondary"
                       className="bg-green-500/20 text-green-400"
                     >
-                      {offer.points} {t("label.points")}
+                      ${offer.points.toFixed(2)}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300">
-                      {t("label.category")}
-                    </span>
+                    <span className="text-gray-300 font-medium">Category</span>
                     <span className="text-white font-medium">
-                      {offer.category}
+                      {offer.category || "General"}
                     </span>
                   </div>
 
                   <Button
                     onClick={() => handleOfferClick(offer)}
                     disabled={offer.status !== "active"}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    {offer.status !== "active"
-                      ? t("status.completed")
-                      : t("button.startOffer")}
+                    {offer.status !== "active" ? "Completed" : "Start Offer"}
                   </Button>
                 </CardContent>
               </Card>
@@ -201,7 +191,7 @@ const OffersSection = () => {
         </div>
       )}
 
-      {/* ✅ مودال المشاركة */}
+      {/* Offer Modal */}
       {selectedOffer && (
         <OfferParticipationModal
           isOpen={showModal}
