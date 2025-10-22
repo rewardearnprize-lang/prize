@@ -109,10 +109,10 @@ const OffersSection = () => {
                 className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl flex flex-col items-center p-6"
               >
                 {/* Offer Image (no circle) */}
-                {offer.image ? (
+                {offer.iconText ? (
                   <div className="mb-4 w-28 h-28 overflow-hidden rounded-xl border border-purple-400 shadow-md">
                     <img
-                      src={offer.image}
+                      src={offer.iconText}
                       alt={offer.title}
                       className="w-full h-full object-cover"
                       onError={(e) => (e.currentTarget.style.display = "none")}
