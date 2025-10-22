@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Image as ImageIcon, Users, Gift, X } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Users, Gift } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -156,25 +156,17 @@ const ParticipationModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-sm bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 group"
-        >
-          <X className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-        </button>
-        
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
         
         <DialogHeader className="relative z-10 pt-6 px-6 pb-4">
           <DialogTitle className="text-center">
             <div className="space-y-4">
-              {/* Enhanced Image Display */}
+              {/* Enhanced Image Display - Larger Size */}
               {imageUrl ? (
                 <div className="flex justify-center">
                   <div className="relative group">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white/30 shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:border-white/50">
+                    <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-white/30 shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:border-white/50">
                       <img 
                         src={imageUrl} 
                         alt={prize.name}
@@ -184,8 +176,8 @@ const ParticipationModal = ({
                           const parent = e.currentTarget.parentElement;
                           if (parent) {
                             parent.innerHTML = `
-                              <div class="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                <Gift className="w-6 h-6 text-white" />
+                              <div class="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center rounded-xl">
+                                <Gift className="w-8 h-8 text-white" />
                               </div>
                             `;
                           }
@@ -193,14 +185,14 @@ const ParticipationModal = ({
                       />
                     </div>
                     {/* Floating particles around image */}
-                    <div className="absolute -inset-1">
-                      {[...Array(2)].map((_, i) => (
+                    <div className="absolute -inset-2">
+                      {[...Array(3)].map((_, i) => (
                         <div
                           key={i}
-                          className="absolute w-1 h-1 bg-yellow-400 rounded-full animate-ping"
+                          className="absolute w-1.5 h-1.5 bg-yellow-400 rounded-full animate-ping"
                           style={{
-                            left: `${20 + i * 60}%`,
-                            top: `${20 + i * 60}%`,
+                            left: `${15 + i * 35}%`,
+                            top: `${15 + i * 35}%`,
                             animationDelay: `${i * 0.3}s`
                           }}
                         ></div>
@@ -211,11 +203,11 @@ const ParticipationModal = ({
               ) : (
                 <div className="flex justify-center">
                   <div className="relative">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-xl">
-                      <Gift className="w-6 h-6 text-white" />
+                    <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-xl">
+                      <Gift className="w-8 h-8 text-white" />
                     </div>
                     {/* Animated rings */}
-                    <div className="absolute inset-0 rounded-lg border-2 border-purple-400/30 animate-ping"></div>
+                    <div className="absolute inset-0 rounded-xl border-2 border-purple-400/30 animate-ping"></div>
                   </div>
                 </div>
               )}
