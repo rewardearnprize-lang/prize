@@ -60,6 +60,28 @@ const OffersSection = () => {
     setShowModal(true);
   };
 
+  // دالة للحصول على cardTitle مع التحقق الشامل
+  const getCardTitle = (offer: Offer) => {
+    console.log('Offer data:', offer); // للتصحيح
+    
+    // تحقق من جميع الأسماء المحتملة لـ cardTitle
+    if (offer.cardTitle && offer.cardTitle.trim() !== '') {
+      return offer.cardTitle;
+    }
+    if (offer.cardtitle && offer.cardtitle.trim() !== '') {
+      return offer.cardtitle;
+    }
+    if (offer.card_title && offer.card_title.trim() !== '') {
+      return offer.card_title;
+    }
+    if (offer.cardName && offer.cardName.trim() !== '') {
+      return offer.cardName;
+    }
+    
+    // إذا لم يوجد cardTitle، استخدم العنوان العادي
+    return offer.title || "Special Offer";
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -96,8 +118,8 @@ const OffersSection = () => {
             // التحقق من وجود صورة
             const hasImage = offer.iconText || offer.imageUrl;
             
-            // استخدام cardTitle فقط مع قيمة افتراضية
-            const cardTitle = offer.cardTitle || "Special Offer";
+            // استخدام الدالة المحسنة للحصول على cardTitle
+            const cardTitle = getCardTitle(offer);
 
             return (
               <Card
@@ -120,7 +142,7 @@ const OffersSection = () => {
                           defaultCard.innerHTML = `
                             <div class="text-center animate-pulse">
                               <div class="text-4xl mb-2 animate-bounce">🎁</div>
-                              <div class="text-3xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent px-2 leading-tight">${cardTitle}</div>
+                              <div class="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent px-2 leading-tight break-words whitespace-normal">${cardTitle}</div>
                             </div>
                           `;
                           cardElement.appendChild(defaultCard);
@@ -131,7 +153,7 @@ const OffersSection = () => {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
                   </div>
                 ) : (
-                  // البطاقة الافتراضية عندما لا توجد صورة - استخدام cardTitle فقط
+                  // البطاقة الافتراضية عندما لا توجد صورة
                   <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
                     {/* Animated background */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
@@ -152,10 +174,10 @@ const OffersSection = () => {
                       ))}
                     </div>
 
-                    {/* Content with animations - استخدام cardTitle فقط */}
+                    {/* Content with animations */}
                     <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110 w-full px-4">
                       <div className="text-4xl mb-3 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
-                      <div className="text-3xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-pulse group-hover:animate-none leading-tight break-words whitespace-normal">
+                      <div className="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-pulse group-hover:animate-none leading-tight break-words whitespace-normal">
                         {cardTitle}
                       </div>
                     </div>
