@@ -98,7 +98,7 @@ const OffersSection = () => {
                 key={offer.id}
                 className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden flex flex-col"
               >
-                {/* Offer Image (Card Style) */}
+                {/* Offer Image (Card Style) - بنفس تصميم الكود الأول */}
                 {offer.iconText || offer.imageUrl ? (
                   <div className="relative h-40 w-full">
                     <img
