@@ -41,6 +41,7 @@ const OffersManagement = () => {
     offerurl: string;
     iconText: string;
     participationType: "id" | "email";
+    cardTitle: string; // ✅ إضافة حقل جديد لاسم البطاقة
   }>({
     title: "",
     description: "",
@@ -49,6 +50,7 @@ const OffersManagement = () => {
     offerurl: "",
     iconText: "🎁",
     participationType: "email",
+    cardTitle: "", // ✅ الحقل الجديد
   });
 
   useEffect(() => {
@@ -93,6 +95,7 @@ const OffersManagement = () => {
         offerurl: finalLink,
         status: "active",
         imageUrl: "",
+        cardTitle: newOffer.cardTitle || newOffer.title, // ✅ استخدام cardTitle أو العنوان الافتراضي
       })
     );
 
@@ -105,6 +108,7 @@ const OffersManagement = () => {
         offerurl: "",
         iconText: "🎁",
         participationType: "email",
+        cardTitle: "", // ✅ إعادة تعيين الحقل
       });
       setShowAddDialog(false);
       toast({
@@ -125,6 +129,7 @@ const OffersManagement = () => {
           ...editingOffer,
           participationType: normalizeParticipationType(editingOffer.participationType),
           offerurl: finalLink,
+          cardTitle: editingOffer.cardTitle || editingOffer.title, // ✅ استخدام cardTitle أو العنوان الافتراضي
         },
       })
     );
@@ -203,6 +208,12 @@ const OffersManagement = () => {
                   onChange={(val) => setNewOffer({ ...newOffer, title: val })}
                 />
                 <InputField
+                  label="اسم البطاقة (عند عدم وجود صورة)"
+                  value={newOffer.cardTitle}
+                  placeholder="مثال: بطاقة هدايا أمازون"
+                  onChange={(val) => setNewOffer({ ...newOffer, cardTitle: val })}
+                />
+                <InputField
                   label="الوصف"
                   value={newOffer.description}
                   placeholder="وصف تفصيلي للعرض"
@@ -275,6 +286,12 @@ const OffersManagement = () => {
                     label="عنوان العرض"
                     value={editingOffer.title}
                     onChange={(val) => setEditingOffer({ ...editingOffer, title: val })}
+                  />
+                  <InputField
+                    label="اسم البطاقة (عند عدم وجود صورة)"
+                    value={editingOffer.cardTitle || ""}
+                    placeholder="مثال: بطاقة هدايا أمازون"
+                    onChange={(val) => setEditingOffer({ ...editingOffer, cardTitle: val })}
                   />
                   <InputField
                     label="الوصف"
@@ -413,6 +430,12 @@ const OffersManagement = () => {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-400">الحالة:</span>
                         <span>{getStatusBadge(offer.status)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">اسم البطاقة:</span>
+                        <span className="text-white font-medium">
+                          {offer.cardTitle || offer.title}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-400">رابط العرض:</span>
