@@ -234,6 +234,19 @@ const Index = () => {
     setTimeout(() => setShowSocialModal(true), 500);
   };
 
+  // دالة للحصول على cardTitle للجوائز
+  const getCardTitle = (draw: Draw) => {
+    const cardTitle = (draw as any).cardTitle || 
+                     (draw as any).cardtitle || 
+                     (draw as any).card_title;
+    
+    if (cardTitle && cardTitle.trim() !== '') {
+      return cardTitle;
+    }
+    
+    return draw.name ? `${draw.name} GIFT CARD` : "GIFT CARD";
+  };
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       {/* Hero Section */}
@@ -261,90 +274,133 @@ const Index = () => {
             <h2 className="text-4xl font-bold text-white mb-4">{t("prizes.availableNow")}</h2>
             <p className="text-xl text-gray-300">{t("prizes.chooseToParticipate")}</p>
           </div>
-<div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-  {loading && <p className="text-white text-center">Loading...</p>}
 
-  {!loading &&
-    draws
-      .filter((draw) => draw.status === "active")
-      .map((draw) => {
-        const participantsCount =
-          typeof participantsCounts[draw.id] === "number"
-            ? participantsCounts[draw.id]
-            : 0;
-        const max = draw.maxParticipants || 0;
-        const remaining = Math.max(max - participantsCount, 0);
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            {loading && <p className="text-white text-center">Loading...</p>}
 
-        return (
-          <Card
-            key={draw.id}
-            className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden flex flex-col"
-          >
-            {/* صورة الجائزة (بطاقة) */}
-            {draw.image || draw.imageUrl ? (
-              <div className="relative h-40 w-full">
-                <img
-                  src={draw.image || draw.imageUrl}
-                  alt={draw.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => (e.currentTarget.style.display = "none")}
-                />
-              </div>
-            ) : (
-              <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
-                Gift Card
-              </div>
-            )}
+            {!loading &&
+              draws
+                .filter((draw) => draw.status === "active")
+                .map((draw) => {
+                  const participantsCount =
+                    typeof participantsCounts[draw.id] === "number"
+                      ? participantsCounts[draw.id]
+                      : 0;
+                  const max = draw.maxParticipants || 0;
+                  const remaining = Math.max(max - participantsCount, 0);
+                  const cardTitle = getCardTitle(draw);
 
-            {/* محتوى البطاقة */}
-            <CardHeader className="text-center p-4">
-              <CardTitle className="text-white text-xl font-semibold">
-                {draw.name}
-              </CardTitle>
-              <CardDescription className="text-green-400 text-lg font-bold">
-                ${Number(draw.prizeValue || 0).toFixed(2)}
-              </CardDescription>
-            </CardHeader>
+                  return (
+                    <Card
+                      key={draw.id}
+                      className="group bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-500 hover:scale-[1.05] shadow-lg rounded-2xl overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-purple-500/20"
+                    >
+                      {/* صورة الجائزة مع نفس التصميم المتحرك */}
+                      {draw.image || draw.imageUrl ? (
+                        <div className="relative h-40 w-full overflow-hidden">
+                          <img
+                            src={draw.image || draw.imageUrl}
+                            alt={draw.name}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const cardElement = e.currentTarget.parentElement;
+                              if (cardElement) {
+                                const defaultCard = document.createElement('div');
+                                defaultCard.className = 'h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white';
+                                defaultCard.innerHTML = `
+                                  <div class="text-center">
+                                    <div class="text-4xl mb-2 animate-bounce">🎁</div>
+                                    <div class="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent px-2 leading-tight break-words whitespace-normal">${cardTitle}</div>
+                                  </div>
+                                `;
+                                cardElement.appendChild(defaultCard);
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
+                        </div>
+                      ) : (
+                        // البطاقة الافتراضية بنفس التصميم المتحرك
+                        <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
+                          {/* Animated background */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          
+                          {/* Floating particles */}
+                          <div className="absolute inset-0">
+                            {[...Array(5)].map((_, i) => (
+                              <div
+                                key={i}
+                                className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
+                                style={{
+                                  left: `${Math.random() * 100}%`,
+                                  top: `${Math.random() * 100}%`,
+                                  animationDelay: `${i * 0.5}s`,
+                                  animationDuration: `${3 + Math.random() * 2}s`
+                                }}
+                              ></div>
+                            ))}
+                          </div>
 
-            <CardContent className="space-y-3 px-6 pb-6">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Remaining slots:</span>
-                <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
-                  {remaining}
-                </Badge>
-              </div>
+                          {/* Content with animations */}
+                          <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110 w-full px-4">
+                            <div className="text-4xl mb-3 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
+                            <div className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent leading-tight break-words whitespace-normal px-2">
+                              {cardTitle}
+                            </div>
+                          </div>
 
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${max > 0 ? (participantsCount / max) * 100 : 0}%` }}
-                ></div>
-              </div>
+                          {/* Shine effect on hover */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        </div>
+                      )}
 
-              <div className="text-center text-sm text-gray-400">
-                {draw.status === "active"
-                  ? `Draw ends on ${draw.endDate || "Soon"}`
-                  : "Closed"}
-              </div>
+                      {/* محتوى البطاقة مع تأثيرات التمرير */}
+                      <CardHeader className="text-center p-4">
+                        <CardTitle className="text-white text-xl font-semibold transform transition-transform duration-300 group-hover:scale-105">
+                          {draw.name}
+                        </CardTitle>
+                        <CardDescription className="text-green-400 text-lg font-bold">
+                          ${Number(draw.prizeValue || 0).toFixed(2)}
+                        </CardDescription>
+                      </CardHeader>
 
-              <Button
-                onClick={() => handlePrizeClick(draw)}
-                disabled={draw.status !== "active" || remaining <= 0}
-                className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Target className="w-4 h-4 mr-2" />
-                {draw.status !== "active"
-                  ? "Completed"
-                  : "Participate Now"}
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })}
-</div>
+                      <CardContent className="space-y-3 px-6 pb-6">
+                        <div className="flex items-center justify-between transform transition-transform duration-300 group-hover:translate-x-1">
+                          <span className="text-gray-300">Remaining slots:</span>
+                          <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 transition-all duration-300 group-hover:scale-110">
+                            {remaining}
+                          </Badge>
+                        </div>
 
-         
-     
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${max > 0 ? (participantsCount / max) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+
+                        <div className="text-center text-sm text-gray-400 transform transition-all duration-300 group-hover:text-white">
+                          {draw.status === "active"
+                            ? `✨ Draw ends on ${draw.endDate || "Soon"} ✨`
+                            : "✅ Closed"}
+                        </div>
+
+                        <Button
+                          onClick={() => handlePrizeClick(draw)}
+                          disabled={draw.status !== "active" || remaining <= 0}
+                          className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-purple-500/50"
+                        >
+                          <Target className="w-4 h-4 mr-2 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                          {draw.status !== "active"
+                            ? "Completed"
+                            : "Participate Now"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+          </div>
         </div>
       </div>
 
@@ -378,6 +434,24 @@ const Index = () => {
       />
 
       <Footer />
+
+      {/* Custom animations */}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(180deg); }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        .animate-shimmer {
+          animation: shimmer 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
