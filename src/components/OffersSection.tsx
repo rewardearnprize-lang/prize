@@ -99,20 +99,23 @@ const OffersSection = () => {
                 className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden"
               >
                 {/* Offer Image (Card Style) */}
-                {offer.iconText ? (
+   {/* Offer Image (Gift Card Style) */}
+{offer.iconText || offer.imageUrl ? (
   <div className="relative h-40 w-full overflow-hidden rounded-xl border border-purple-400 shadow-md">
-                    <img
-                      src={offer.iconText}
-                      alt={offer.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  </div>
-                ) : (
-                 <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-2xl font-bold">
-    Gift Card
+    <img
+      src={offer.iconText || offer.imageUrl}
+      alt={offer.title}
+      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+      onError={(e) => (e.currentTarget.style.display = 'none')}
+    />
   </div>
-                )}
+) : (
+  <div className="relative h-40 w-full flex flex-col items-center justify-center rounded-xl border border-purple-400 bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 text-white shadow-lg">
+    <span className="text-4xl mb-1">🎁</span>
+    <span className="text-lg font-bold tracking-wide">Gift Card</span>
+  </div>
+)}
+
 
                 {/* Offer Content */}
                 <CardHeader className="text-center p-4">
