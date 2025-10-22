@@ -124,7 +124,7 @@ const OffersSection = () => {
                 ) : (
                   // البطاقة الافتراضية عندما لا توجد صورة
                    <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
-    {offer.cardTitle} {/* ✅ استخدام cardTitle بدلاً من "Gift Card" */}
+    {offer.cardTitle || offer.title || "Gift Card" } {/* ✅ استخدام cardTitle بدلاً من "Gift Card" */}
   </div>
                 )}
 
