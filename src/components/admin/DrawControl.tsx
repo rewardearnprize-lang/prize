@@ -57,6 +57,7 @@ const DrawControl = () => {
   const [newDraw, setNewDraw] = useState({
     id: "",
     name: "",
+    cardTitle: "", // ✅ إضافة حقل cardTitle
     description: "",
     startDate: "",
     endDate: "",
@@ -203,6 +204,7 @@ const DrawControl = () => {
   try {
     const drawData = {
       name: newDraw.name,
+      cardTitle: newDraw.cardTitle || newDraw.name, // ✅ إرسال cardTitle
       description: newDraw.description,
       startDate: newDraw.startDate,
       endDate: newDraw.endDate,
@@ -214,19 +216,20 @@ const DrawControl = () => {
       offerUrl: newDraw.offerUrl,
       offerId: newDraw.offerId,
       participationType: newDraw.participationType,
-      imageUrl: newDraw.imageUrl, // تأكد من إرسال imageUrl
+      imageUrl: newDraw.imageUrl,
     };
 
-    console.log("بيانات السحب المرسلة:", drawData); // للتصحيح
+    console.log("بيانات السحب المرسلة:", drawData);
 
     const result = await dispatch(addDraw(drawData));
     
     if (addDraw.fulfilled.match(result)) {
-      console.log("تم إضافة السحب بنجاح:", result.payload); // للتصحيح
+      console.log("تم إضافة السحب بنجاح:", result.payload);
       
       setNewDraw({
         id: "",
         name: "",
+        cardTitle: "", // ✅ إعادة تعيين
         description: "",
         startDate: "",
         endDate: "",
@@ -240,7 +243,7 @@ const DrawControl = () => {
         offerUrl: "",
         offerId: "",
         participationType: "email",
-        imageUrl: "", // إعادة تعيين
+        imageUrl: "",
       });
       setShowAddDrawDialog(false);
       toast({
@@ -281,7 +284,8 @@ const DrawControl = () => {
         id: editingDraw.id,
         drawData: {
           ...editingDraw,
-          imageUrl: editingDraw.imageUrl || "", // تأكد من إرسال imageUrl
+          cardTitle: (editingDraw as any).cardTitle || editingDraw.name, // ✅ تحديث cardTitle
+          imageUrl: editingDraw.imageUrl || "",
           updatedAt: new Date().toISOString()
         },
       })
@@ -387,16 +391,31 @@ const DrawControl = () => {
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-300">الوصف</Label>
+                    <Label className="text-gray-300">اسم البطاقة (للعرض)</Label>
                     <Input
-                      value={newDraw.description}
+                      value={newDraw.cardTitle}
                       onChange={(e) =>
-                        setNewDraw({ ...newDraw, description: e.target.value })
+                        setNewDraw({ ...newDraw, cardTitle: e.target.value })
                       }
                       className="bg-gray-800 border-gray-600 text-white"
-                      placeholder="وصف السحب"
+                      placeholder="مثال: PAYPAL GIFT CARD"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      هذا الاسم سيظهر داخل البطاقة عند عدم وجود صورة
+                    </p>
                   </div>
+                </div>
+
+                <div>
+                  <Label className="text-gray-300">الوصف</Label>
+                  <Input
+                    value={newDraw.description}
+                    onChange={(e) =>
+                      setNewDraw({ ...newDraw, description: e.target.value })
+                    }
+                    className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="وصف السحب"
+                  />
                 </div>
 
                 <div>
@@ -606,6 +625,12 @@ const DrawControl = () => {
 
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">اسم البطاقة:</span>
+                        <span className="text-yellow-400 font-medium">
+                          {(draw as any).cardTitle || draw.name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
                         <span className="text-gray-400">الجائزة:</span>
                         <span className="text-green-400 font-medium">
                           {draw.prize || "غير محدد"}
@@ -796,18 +821,33 @@ const DrawControl = () => {
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-300">الوصف</Label>
+                  <Label className="text-gray-300">اسم البطاقة (للعرض)</Label>
                   <Input
-                    value={editingDraw.description || ""}
+                    value={(editingDraw as any).cardTitle || ""}
                     onChange={(e) =>
-                      setEditingDraw({
-                        ...editingDraw,
-                        description: e.target.value
+                      setEditingDraw({ 
+                        ...editingDraw, 
+                        cardTitle: e.target.value 
                       })
                     }
                     className="bg-gray-800 border-gray-600 text-white"
+                    placeholder="مثال: PAYPAL GIFT CARD"
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label className="text-gray-300">الوصف</Label>
+                <Input
+                  value={editingDraw.description || ""}
+                  onChange={(e) =>
+                    setEditingDraw({
+                      ...editingDraw,
+                      description: e.target.value
+                    })
+                  }
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
               </div>
 
               <div>
