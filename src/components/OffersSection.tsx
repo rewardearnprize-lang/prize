@@ -120,10 +120,10 @@ const OffersSection = () => {
                       }
                     />
                   </div>
-                ) : offer.iconText ? (
-                  <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
-                    {offer.iconText}
-                  </div>
+            //    ) : offer.iconText ? (
+                //  <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
+                //    {offer.iconText}
+               //   </div>
                 ) : (
                   <div className="mb-4 w-24 h-24 flex items-center justify-center rounded-full bg-purple-500 text-4xl text-white shadow-lg border-4 border-purple-400">
                     🎁
