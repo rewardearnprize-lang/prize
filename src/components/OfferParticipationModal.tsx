@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Users, Gift, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { firestore } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from "firebase/firestore";
@@ -21,7 +21,6 @@ interface OfferParticipationModalProps {
   offerTitle: string;
   offerLink: string;
   participationType: "email" | "id";
-  // الإضافات الجديدة
   prizeValue?: number | string;
   maxParticipants?: number;
   offerImage?: string;
@@ -34,7 +33,6 @@ const OfferParticipationModal = ({
   offerTitle,
   offerLink,
   participationType,
-  // الإضافات الجديدة
   prizeValue,
   maxParticipants,
   offerImage,
@@ -44,7 +42,6 @@ const OfferParticipationModal = ({
   const [joinedCount, setJoinedCount] = useState(0);
   const { toast } = useToast();
 
-  // 🔹 جلب عدد المشاركين الحاليين (إضافة جديدة)
   const fetchJoinedCount = async () => {
     if (!offerId) return;
     try {
@@ -63,6 +60,7 @@ const OfferParticipationModal = ({
   useEffect(() => {
     if (isOpen && offerId) {
       fetchJoinedCount();
+      setInputValue(""); // Reset input when modal opens
     }
   }, [isOpen, offerId]);
 
@@ -76,9 +74,7 @@ const OfferParticipationModal = ({
   const handleSubmit = async () => {
     if (!inputValue) {
       return toast({
-        title: `Please enter your ${
-          participationType === "email" ? "Email" : "ID"
-        }`,
+        title: `Please enter your ${participationType === "email" ? "Email" : "ID"}`,
         variant: "destructive",
       });
     }
@@ -90,7 +86,6 @@ const OfferParticipationModal = ({
       });
     }
 
-    // التحقق من إذا كانت المشاركات ممتلئة (إضافة جديدة)
     if (maxParticipants && joinedCount >= maxParticipants) {
       return toast({
         title: "This offer is full",
@@ -103,31 +98,26 @@ const OfferParticipationModal = ({
 
     setLoading(true);
     try {
-      // إنشاء مفتاح فريد بدلاً من البريد/ID (إضافة جديدة)
       const uniqueKey = `key_${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
 
-      // حفظ البيانات مع حقول إضافية (إضافة جديدة)
       const participantRef = doc(firestore, "participants", uniqueKey);
       await setDoc(participantRef, {
         [participationType]: inputValue,
         offerId,
         offerTitle,
         offerurl: finalLink,
-        status: "pending", // تغيير من "completed" إلى "pending"
+        status: "pending",
         timestamp: serverTimestamp(),
-        // الحقول الجديدة
         verified: false,
         key: uniqueKey,
         joinDate: new Date().toISOString(),
         prizeValue: prizeValue || null,
       });
 
-      // فتح الرابط مع إضافة الباراميترات (إضافة جديدة)
       let offerUrlWithParams = `${finalLink}${
         finalLink.includes("?") ? "&" : "?"
       }aff_sub4=${encodeURIComponent(uniqueKey)}&aff_sub5=${encodeURIComponent(inputValue)}`;
 
-      // الكشف عن نوع الجهاز وتعديل المسار (إضافة جديدة)
       const ua = navigator.userAgent || (navigator as any).vendor || (window as any).opera;
       const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
 
@@ -135,7 +125,6 @@ const OfferParticipationModal = ({
         offerUrlWithParams = offerUrlWithParams.replace("/cl/i/", "/cl/v/");
       }
 
-      // فتح الرابط في نافذة جديدة (تحسين)
       const newTab = window.open("about:blank", "_blank");
       if (newTab) {
         setTimeout(() => {
@@ -168,46 +157,120 @@ const OfferParticipationModal = ({
     setLoading(false);
   };
 
-  // حساب المشاركات المتبقية (إضافة جديدة)
   const remaining = maxParticipants ? maxParticipants - joinedCount : 0;
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={() => {
-        onClose();
-        setInputValue("");
-      }}
-    >
-      <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
-        <DialogHeader>
-          <DialogTitle className="text-center">
-            <div className="space-y-4">
-              <div className="text-4xl">{offerImage || "🎯"}</div>
-              <h2 className="text-2xl font-bold text-white">Join Offer</h2>
-              <p className="text-lg text-gray-300">{offerTitle}</p>
-              <div className="flex flex-col gap-2">
-                <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
-                  Complete to unlock rewards
-                </Badge>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
+        
+        <div className="relative z-10">
+          {/* Image Section - Full Width like Main Page */}
+          <div className="w-full h-40 relative overflow-hidden group">
+            {offerImage ? (
+              <>
+                <img 
+                  src={offerImage} 
+                  alt={offerTitle}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div class="w-full h-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 flex items-center justify-center">
+                          <div class="text-center text-white">
+                            <div class="text-4xl mb-2 animate-bounce">🎯</div>
+                            <div class="text-xl font-bold">${offerTitle}</div>
+                          </div>
+                        </div>
+                      `;
+                    }
+                  }}
+                />
+                {/* Overlay effect */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
+              </>
+            ) : (
+              // Default card design like main page
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                
+                {/* Floating particles */}
+                <div className="absolute inset-0">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
+                      style={{
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${i * 0.5}s`,
+                        animationDuration: `${3 + Math.random() * 2}s`
+                      }}
+                    ></div>
+                  ))}
+                </div>
+
+                {/* Content */}
+                <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110">
+                  <div className="text-4xl mb-2 animate-bounce">🎯</div>
+                  <div className="text-xl font-bold text-white">
+                    {offerTitle}
+                  </div>
+                </div>
+
+                {/* Shine effect on hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+              </div>
+            )}
+          </div>
+
+          <DialogHeader className="px-6 pt-4 pb-2">
+            <DialogTitle className="text-center">
+              <div className="space-y-3">
+                <h2 className="text-xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  Join Offer
+                </h2>
+                
+                {/* Prize Value Badge */}
                 {prizeValue && (
-                  <Badge className="bg-blue-500/20 text-blue-400 text-md px-3 py-1">
-                    Prize Value: {prizeValue}
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+                    <Gift className="w-3 h-3 mr-1" />
+                    Reward: {typeof prizeValue === 'number' ? `$${prizeValue}` : prizeValue}
                   </Badge>
                 )}
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
 
-        <div className="space-y-6">
-          {/* بطاقة تقدم المشاركين (إضافة جديدة) */}
+                {/* Participants Counter */}
+                {maxParticipants && (
+                  <div className="flex items-center justify-center space-x-4 text-sm">
+                    <div className="flex items-center text-blue-300">
+                      <Users className="w-4 h-4 mr-1" />
+                      <span>{joinedCount} joined</span>
+                    </div>
+                    <div className="flex items-center text-green-300">
+                      <Clock className="w-4 h-4 mr-1" />
+                      <span>{remaining} spots left</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+        </div>
+
+        <div className="space-y-5 relative z-10 px-6 pb-6">
+          {/* Progress Bar for Participants */}
           {maxParticipants && (
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Remaining slots:</span>
-                  <Badge variant="secondary">{remaining}</Badge>
+            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-300">Progress:</span>
+                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                    {remaining} remaining
+                  </Badge>
                 </div>
 
                 <div className="w-full bg-gray-700 rounded-full h-2">
@@ -218,87 +281,129 @@ const OfferParticipationModal = ({
                     }}
                   ></div>
                 </div>
-
-                <div className="flex items-center text-sm text-gray-400">
-                  <Clock className="w-4 h-4 mr-2" />
-                  <span>The draw will take place once all slots are filled.</span>
-                </div>
               </CardContent>
             </Card>
           )}
 
-          <div>
-            <label className="block text-white font-medium mb-2">
-              {participationType === "id" ? (
-                <IdCard className="w-4 h-4 inline mr-2" />
-              ) : (
-                <Mail className="w-4 h-4 inline mr-2" />
-              )}
-              {participationType === "id" ? "ID" : "Email"}
-            </label>
-            <Input
-              type={participationType === "id" ? "text" : "email"}
-              placeholder={
-                participationType === "id"
-                  ? "Enter your ID"
-                  : "Enter your Email"
-              }
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
-              required
-            />
-          </div>
-
-          <Card className="bg-blue-500/20 border-blue-500/30">
-            <CardContent className="p-4">
-              <h4 className="text-white font-medium mb-3">
-                Participation Steps:
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center text-gray-300">
-                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                    1
-                  </span>
-                  Enter your {participationType === "email" ? "Email" : "ID"}
-                </div>
-
-                <div className="flex items-center text-gray-300">
-                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                    2
-                  </span>
-                  Complete the required offer
-                </div>
-                <div className="flex items-center text-gray-300">
-                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
-                    3
-                  </span>
-                  Wait for participation confirmation
-                </div>
+          <form className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
+            {/* Input Field with Enhanced Design */}
+            <div className="space-y-2">
+              <label className="block text-white font-medium text-sm flex items-center">
+                {participationType === "id" ? (
+                  <IdCard className="w-4 h-4 mr-2" />
+                ) : (
+                  <Mail className="w-4 h-4 mr-2" />
+                )}
+                {participationType === "id" ? "Enter Your ID" : "Enter Your Email"}
+                <span className="text-red-400 ml-1">*</span>
+              </label>
+              <div className="relative group">
+                <Input
+                  type={participationType === "id" ? "text" : "email"}
+                  placeholder={
+                    participationType === "id"
+                      ? "Your unique ID..."
+                      : "your.email@example.com"
+                  }
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
+                  required
+                />
+                {/* Input glow effect */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <div className="flex space-x-3">
-            <Button
-              onClick={handleSubmit}
-              disabled={loading || (maxParticipants && remaining <= 0)}
-              className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              {loading ? "Processing..." : "Participate Now"}
-            </Button>
+            {/* Enhanced Steps Card */}
+            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300">
+              <CardContent className="p-4">
+                <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
+                  <Sparkles className="w-4 h-4 text-yellow-400 mr-2 animate-pulse" />
+                  Quick Steps to Complete
+                </h4>
+                <div className="space-y-3">
+                  {[
+                    { step: 1, text: `Enter your ${participationType === "id" ? "ID" : "email"}` },
+                    { step: 2, text: "Complete the required offer" },
+                    { step: 3, text: "Get your reward instantly" }
+                  ].map((item, index) => (
+                    <div 
+                      key={item.step}
+                      className="flex items-center text-gray-200 group-hover:text-white transition-colors duration-300"
+                    >
+                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 shadow-lg animate-bounce"
+                           style={{ animationDelay: `${index * 0.2}s` }}>
+                        {item.step}
+                      </div>
+                      <span className="text-sm">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="border-white/30 text-white hover:bg-white/10 hover:text-white"
-            >
-              Cancel
-            </Button>
+            {/* Enhanced Buttons with Animations */}
+            <div className="flex space-x-3 pt-2">
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || (maxParticipants && remaining <= 0)}
+                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+              >
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                
+                {loading ? (
+                  <div className="flex items-center relative z-10">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Processing...
+                  </div>
+                ) : (
+                  <div className="flex items-center relative z-10">
+                    <ExternalLink className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                    Participate Now
+                  </div>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
+              >
+                {/* Shine effect for cancel button */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                <span className="relative z-10">Cancel</span>
+              </Button>
+            </div>
+          </form>
+
+          {/* Security Badge */}
+          <div className="text-center">
+            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1 px-3 animate-pulse">
+              🔒 Secure & Encrypted
+            </Badge>
           </div>
         </div>
+
+        {/* Custom Animations */}
+        <style jsx>{`
+          @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(180deg); }
+          }
+          .animate-shimmer {
+            animation: shimmer 3s ease-in-out infinite;
+          }
+          .animate-float {
+            animation: float 3s ease-in-out infinite;
+          }
+        `}</style>
       </DialogContent>
     </Dialog>
   );
