@@ -32,14 +32,6 @@ const OffersSection = () => {
     dispatch(fetchOffers());
   }, [dispatch]);
 
-  // Difficulty color
-  const getDifficultyColor = (points: number) => {
-    if (points <= 20) return "bg-green-500";
-    if (points <= 50) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
-  // Availability status
   const getAvailabilityStatus = (offer: Offer) => {
     if (offer.status === "inactive") {
       return {
@@ -55,7 +47,6 @@ const OffersSection = () => {
     };
   };
 
-  // On click offer
   const handleOfferClick = (offer: Offer) => {
     if (offer.status !== "active") {
       toast({
@@ -69,7 +60,6 @@ const OffersSection = () => {
     setShowModal(true);
   };
 
-  // While loading
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -82,11 +72,9 @@ const OffersSection = () => {
     <div className="container mx-auto px-4 py-16 bg-gradient-to-b from-transparent to-black/20">
       {/* Header */}
       <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold text-white mb-4">
-          Limited Time Offers
-        </h2>
+        <h2 className="text-4xl font-bold text-white mb-4">Exclusive Offers</h2>
         <p className="text-xl text-gray-300 mb-6">
-          Complete offers and earn rewards instantly
+          Complete the tasks and earn instant rewards 💸
         </p>
         <div className="inline-flex items-center bg-blue-500/20 backdrop-blur-sm rounded-full px-6 py-3">
           <Timer className="w-5 h-5 mr-2 text-blue-400" />
@@ -94,9 +82,11 @@ const OffersSection = () => {
         </div>
       </div>
 
-      {/* No offers */}
+      {/* Offers Grid */}
       {offers.length === 0 ? (
-        <p className="text-center text-gray-400">No offers available right now.</p>
+        <p className="text-center text-gray-400">
+          No offers available at the moment.
+        </p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {offers.map((offer) => {
@@ -106,39 +96,27 @@ const OffersSection = () => {
             return (
               <Card
                 key={offer.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl flex flex-col items-center p-6"
+                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden"
               >
-                {/* Offer Image (no circle) */}
+                {/* Offer Image (Card Style) */}
                 {offer.iconText ? (
-                  <div className="mb-4 w-28 h-28 overflow-hidden rounded-xl border border-purple-400 shadow-md">
+                  <div className="relative h-40 w-full">
                     <img
                       src={offer.iconText}
                       alt={offer.title}
                       className="w-full h-full object-cover"
-                      onError={(e) => (e.currentTarget.style.display = "none")}
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
                   </div>
                 ) : (
-                  <div className="mb-4 w-28 h-28 flex items-center justify-center rounded-xl bg-purple-500 text-4xl text-white shadow-md">
-                    🎁
+                  <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
+                    Gift Card
                   </div>
                 )}
 
-                {/* Offer Info */}
-                <CardHeader className="text-center p-0 mb-4">
+                {/* Offer Content */}
+                <CardHeader className="text-center p-4">
                   <div className="flex items-center justify-center mb-2">
-                    <Badge
-                      className={`${getDifficultyColor(
-                        offer.points
-                      )} text-white mx-1`}
-                    >
-                      {offer.points <= 20
-                        ? "Easy"
-                        : offer.points <= 50
-                        ? "Medium"
-                        : "Hard"}
-                    </Badge>
-
                     <div
                       className={`flex items-center ${availability.color} mx-1`}
                     >
@@ -157,8 +135,7 @@ const OffersSection = () => {
                   </CardDescription>
                 </CardHeader>
 
-                {/* Offer Details */}
-                <CardContent className="space-y-4 w-full">
+                <CardContent className="space-y-4 w-full px-6 pb-6">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-300 font-medium">Reward</span>
                     <Badge
