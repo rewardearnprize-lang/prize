@@ -234,16 +234,25 @@ const Index = () => {
     setTimeout(() => setShowSocialModal(true), 500);
   };
 
-  // دالة للحصول على cardTitle للجوائز
+  // دالة للحصول على cardTitle للعرض داخل البطاقة
   const getCardTitle = (draw: Draw) => {
+    // تحقق من جميع الأسماء المحتملة لـ cardTitle
     const cardTitle = (draw as any).cardTitle || 
                      (draw as any).cardtitle || 
                      (draw as any).card_title;
     
+    console.log('🔍 Checking cardTitle for draw:', {
+      id: draw.id,
+      name: draw.name,
+      cardTitle: cardTitle,
+      allData: draw
+    });
+
     if (cardTitle && cardTitle.trim() !== '') {
       return cardTitle;
     }
     
+    // إذا لم يوجد cardTitle، استخدم اسم السحب مع إضافة "GIFT CARD"
     return draw.name ? `${draw.name} GIFT CARD` : "GIFT CARD";
   };
 
@@ -288,6 +297,8 @@ const Index = () => {
                       : 0;
                   const max = draw.maxParticipants || 0;
                   const remaining = Math.max(max - participantsCount, 0);
+                  
+                  // استخدام cardTitle للعرض داخل البطاقة
                   const cardTitle = getCardTitle(draw);
 
                   return (
@@ -295,7 +306,7 @@ const Index = () => {
                       key={draw.id}
                       className="group bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-500 hover:scale-[1.05] shadow-lg rounded-2xl overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-purple-500/20"
                     >
-                      {/* صورة الجائزة مع نفس التصميم المتحرك */}
+                      {/* صورة الجائزة مع استخدام cardTitle */}
                       {draw.image || draw.imageUrl ? (
                         <div className="relative h-40 w-full overflow-hidden">
                           <img
@@ -321,7 +332,7 @@ const Index = () => {
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
                         </div>
                       ) : (
-                        // البطاقة الافتراضية بنفس التصميم المتحرك
+                        // البطاقة الافتراضية باستخدام cardTitle
                         <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
                           {/* Animated background */}
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
@@ -342,7 +353,7 @@ const Index = () => {
                             ))}
                           </div>
 
-                          {/* Content with animations */}
+                          {/* Content with animations - استخدام cardTitle هنا */}
                           <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110 w-full px-4">
                             <div className="text-4xl mb-3 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
                             <div className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent leading-tight break-words whitespace-normal px-2">
@@ -355,7 +366,7 @@ const Index = () => {
                         </div>
                       )}
 
-                      {/* محتوى البطاقة مع تأثيرات التمرير */}
+                      {/* محتوى البطاقة */}
                       <CardHeader className="text-center p-4">
                         <CardTitle className="text-white text-xl font-semibold transform transition-transform duration-300 group-hover:scale-105">
                           {draw.name}
