@@ -261,75 +261,90 @@ const Index = () => {
             <h2 className="text-4xl font-bold text-white mb-4">{t("prizes.availableNow")}</h2>
             <p className="text-xl text-gray-300">{t("prizes.chooseToParticipate")}</p>
           </div>
+<div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+  {loading && <p className="text-white text-center">Loading...</p>}
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {loading && <p className="text-white text-center">Loading...</p>}
-            {!loading &&
-              draws
-                .filter((draw) => draw.status === "active")
-                .map((draw) => {
-                  const participantsCount =
-                    typeof participantsCounts[draw.id] === "number"
-                      ? participantsCounts[draw.id]
-                      : 0;
-                  const max = draw.maxParticipants || 0;
-                  const remaining = Math.max(max - participantsCount, 0);
+  {!loading &&
+    draws
+      .filter((draw) => draw.status === "active")
+      .map((draw) => {
+        const participantsCount =
+          typeof participantsCounts[draw.id] === "number"
+            ? participantsCounts[draw.id]
+            : 0;
+        const max = draw.maxParticipants || 0;
+        const remaining = Math.max(max - participantsCount, 0);
 
-                  return (
-                    <Card key={draw.id} className="bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
-                      <CardHeader className="text-center">
-                        <div className="flex justify-center">
-                          <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-white/20 shadow-lg">
-                            {draw.image || draw.imageUrl ? (
-                              <img
-                                src={draw.image || draw.imageUrl}
-                                alt={draw.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => (e.currentTarget.style.display = "none")}
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center w-full h-full text-4xl bg-black/20 text-white">
-                                🎁
-                              </div>
-                            )}
-                          </div>
-                        </div>
+        return (
+          <Card
+            key={draw.id}
+            className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden flex flex-col"
+          >
+            {/* صورة الجائزة (بطاقة) */}
+            {draw.image || draw.imageUrl ? (
+              <div className="relative h-40 w-full">
+                <img
+                  src={draw.image || draw.imageUrl}
+                  alt={draw.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => (e.currentTarget.style.display = "none")}
+                />
+              </div>
+            ) : (
+              <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
+                Gift Card
+              </div>
+            )}
 
-                        <CardTitle className="text-white">{draw.name}</CardTitle>
-                        <CardDescription className="text-green-400 text-2xl font-bold">
-                          {(draw.prize || draw.name || "Prize")} - ${Number(draw.prizeValue || 0)}
-                        </CardDescription>
-                      </CardHeader>
+            {/* محتوى البطاقة */}
+            <CardHeader className="text-center p-4">
+              <CardTitle className="text-white text-xl font-semibold">
+                {draw.name}
+              </CardTitle>
+              <CardDescription className="text-green-400 text-lg font-bold">
+                ${Number(draw.prizeValue || 0).toFixed(2)}
+              </CardDescription>
+            </CardHeader>
 
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-300">Remaining slots:</span>
-                            <Badge variant="secondary">{remaining}</Badge>
-                          </div>
-                          <div className="w-full bg-gray-700 rounded-full h-2">
-                            <div
-                              className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${max > 0 ? (participantsCount / max) * 100 : 0}%` }}
-                            ></div>
-                          </div>
-                          <div className="text-center text-sm text-gray-400">
-                            {draw.status === "active" ? `Draw ends on ${draw.endDate || ""}` : "Closed"}
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => handlePrizeClick(draw)}
-                          disabled={draw.status !== "active" || remaining <= 0}
-                          className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Target className="w-4 h-4 mr-2" />
-                          {draw.status !== "active" ? t("button.completed") : t("button.participateInDraw")}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-          </div>
+            <CardContent className="space-y-3 px-6 pb-6">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Remaining slots:</span>
+                <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                  {remaining}
+                </Badge>
+              </div>
+
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${max > 0 ? (participantsCount / max) * 100 : 0}%` }}
+                ></div>
+              </div>
+
+              <div className="text-center text-sm text-gray-400">
+                {draw.status === "active"
+                  ? `Draw ends on ${draw.endDate || "Soon"}`
+                  : "Closed"}
+              </div>
+
+              <Button
+                onClick={() => handlePrizeClick(draw)}
+                disabled={draw.status !== "active" || remaining <= 0}
+                className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Target className="w-4 h-4 mr-2" />
+                {draw.status !== "active"
+                  ? "Completed"
+                  : "Participate Now"}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })}
+</div>
+
+         
+     
         </div>
       </div>
 
