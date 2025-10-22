@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Image as ImageIcon, Users, Gift } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Image as ImageIcon, Users, Gift, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -155,18 +155,26 @@ const ParticipationModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+      <DialogContent className="max-w-sm bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 group"
+        >
+          <X className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+        </button>
+        
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
         
-        <DialogHeader className="relative z-10">
+        <DialogHeader className="relative z-10 pt-6 px-6 pb-4">
           <DialogTitle className="text-center">
             <div className="space-y-4">
               {/* Enhanced Image Display */}
               {imageUrl ? (
                 <div className="flex justify-center">
                   <div className="relative group">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-white/30 shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:border-white/50">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white/30 shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:border-white/50">
                       <img 
                         src={imageUrl} 
                         alt={prize.name}
@@ -177,7 +185,7 @@ const ParticipationModal = ({
                           if (parent) {
                             parent.innerHTML = `
                               <div class="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                <Gift className="w-8 h-8 text-white" />
+                                <Gift className="w-6 h-6 text-white" />
                               </div>
                             `;
                           }
@@ -185,15 +193,15 @@ const ParticipationModal = ({
                       />
                     </div>
                     {/* Floating particles around image */}
-                    <div className="absolute -inset-2">
-                      {[...Array(3)].map((_, i) => (
+                    <div className="absolute -inset-1">
+                      {[...Array(2)].map((_, i) => (
                         <div
                           key={i}
                           className="absolute w-1 h-1 bg-yellow-400 rounded-full animate-ping"
                           style={{
-                            left: `${20 + i * 30}%`,
-                            top: `${10 + i * 40}%`,
-                            animationDelay: `${i * 0.5}s`
+                            left: `${20 + i * 60}%`,
+                            top: `${20 + i * 60}%`,
+                            animationDelay: `${i * 0.3}s`
                           }}
                         ></div>
                       ))}
@@ -203,38 +211,38 @@ const ParticipationModal = ({
               ) : (
                 <div className="flex justify-center">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl animate-pulse">
-                      <Gift className="w-8 h-8 text-white" />
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-xl">
+                      <Gift className="w-6 h-6 text-white" />
                     </div>
                     {/* Animated rings */}
-                    <div className="absolute inset-0 rounded-xl border-2 border-purple-400/30 animate-ping"></div>
+                    <div className="absolute inset-0 rounded-lg border-2 border-purple-400/30 animate-ping"></div>
                   </div>
                 </div>
               )}
               
               {/* Prize Info with Animations */}
               <div className="space-y-3 animate-in slide-in-from-top-5 duration-500">
-                <h2 className="text-2xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                <h2 className="text-xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                   Enter the Draw
                 </h2>
-                <p className="text-lg text-gray-200 font-medium">{prize.name}</p>
+                <p className="text-base text-gray-200 font-medium leading-tight">{prize.name}</p>
                 
                 {/* Prize Value Badge */}
-                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-4 py-2 rounded-full shadow-lg animate-bounce">
+                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg">
                   <Gift className="w-3 h-3 mr-1" />
                   Prize: ${prize.prizeValue || prize.value}
                 </Badge>
 
                 {/* Participants Counter */}
                 {prize.maxParticipants && (
-                  <div className="flex items-center justify-center space-x-4 text-sm">
+                  <div className="flex items-center justify-center space-x-3 text-xs">
                     <div className="flex items-center text-blue-300">
-                      <Users className="w-4 h-4 mr-1" />
+                      <Users className="w-3 h-3 mr-1" />
                       <span>{joinedCount} joined</span>
                     </div>
                     <div className="flex items-center text-green-300">
-                      <Clock className="w-4 h-4 mr-1" />
-                      <span>{remaining} spots left</span>
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span>{remaining} left</span>
                     </div>
                   </div>
                 )}
@@ -243,15 +251,15 @@ const ParticipationModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 relative z-10">
-          <form onSubmit={handleSubmit} className="space-y-5 animate-in slide-in-from-bottom-5 duration-500 delay-200">
+        <div className="space-y-5 relative z-10 px-6 pb-6">
+          <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
             {/* Input Field with Enhanced Design */}
-            <div className="space-y-3">
-              <label className="block text-white font-medium mb-2 flex items-center">
+            <div className="space-y-2">
+              <label className="block text-white font-medium text-sm flex items-center">
                 {prize.participationType === "id" ? (
-                  <IdCard className="w-4 h-4 mr-2 animate-pulse" />
+                  <IdCard className="w-3 h-3 mr-2" />
                 ) : (
-                  <Mail className="w-4 h-4 mr-2 animate-pulse" />
+                  <Mail className="w-3 h-3 mr-2" />
                 )}
                 {prize.participationType === "id" ? "Enter Your ID" : "Enter Your Email"}
                 <span className="text-red-400 ml-1">*</span>
@@ -266,37 +274,37 @@ const ParticipationModal = ({
                   }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-12 rounded-xl transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10 rounded-lg text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
                   required
                 />
                 {/* Input glow effect */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
               </div>
             </div>
 
             {/* Enhanced Steps Card */}
-            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300">
-              <CardContent className="p-4">
-                <h4 className="text-white font-semibold mb-4 flex items-center">
-                  <span className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-lg overflow-hidden group hover:bg-white/15 transition-all duration-300">
+              <CardContent className="p-3">
+                <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
+                  <span className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
                     ⚡
                   </span>
-                  Quick Steps to Win
+                  Quick Steps
                 </h4>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {[
                     { step: 1, text: `Enter your ${prize.participationType === "id" ? "ID" : "email"}` },
-                    { step: 2, text: "Complete the required offer" },
-                    { step: 3, text: "Wait for the draw results" }
+                    { step: 2, text: "Complete the offer" },
+                    { step: 3, text: "Wait for results" }
                   ].map((item, index) => (
                     <div 
                       key={item.step}
-                      className="flex items-center text-gray-200 group-hover:text-white transition-colors duration-300"
+                      className="flex items-center text-gray-200 text-xs group-hover:text-white transition-colors duration-300"
                     >
-                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 shadow-lg animate-pulse">
+                      <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2 shadow-lg">
                         {item.step}
                       </div>
-                      <span className="text-sm">{item.text}</span>
+                      <span className="leading-tight">{item.text}</span>
                     </div>
                   ))}
                 </div>
@@ -304,20 +312,20 @@ const ParticipationModal = ({
             </Card>
 
             {/* Enhanced Buttons */}
-            <div className="flex space-x-3 pt-2">
+            <div className="flex space-x-2 pt-1">
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-12 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-10 rounded-lg text-sm transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
               >
                 {isSubmitting ? (
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processing...
                   </div>
                 ) : (
-                  <div className="flex items-center">
-                    <ExternalLink className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
+                  <div className="flex items-center justify-center">
+                    <ExternalLink className="w-3 h-3 mr-1.5 transition-transform duration-300 group-hover:scale-110" />
                     Participate Now
                   </div>
                 )}
@@ -327,7 +335,7 @@ const ParticipationModal = ({
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="border-white/30 text-white hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-300 transform hover:scale-[1.02]"
+                className="border-gray-400 text-gray-700 bg-white/90 hover:bg-white hover:text-gray-900 h-10 rounded-lg text-sm transition-all duration-300 transform hover:scale-[1.02] min-w-[80px]"
               >
                 Cancel
               </Button>
@@ -336,8 +344,8 @@ const ParticipationModal = ({
 
           {/* Security Badge */}
           <div className="text-center">
-            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1">
-              🔒 Secure & Encrypted
+            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1 px-2">
+              🔒 Secure
             </Badge>
           </div>
         </div>
