@@ -88,7 +88,7 @@ const OffersSection = () => {
           No offers available at the moment.
         </p>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {offers.map((offer) => {
             const availability = getAvailabilityStatus(offer);
             const Icon = availability.icon;
@@ -96,70 +96,60 @@ const OffersSection = () => {
             return (
               <Card
                 key={offer.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden"
+                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden flex flex-col"
               >
                 {/* Offer Image (Card Style) */}
-   {/* Offer Image (Gift Card Style) */}
-{offer.iconText || offer.imageUrl ? (
-  <div className="relative h-40 w-full overflow-hidden rounded-xl border border-purple-400 shadow-md">
-    <img
-      src={offer.iconText || offer.imageUrl}
-      alt={offer.title}
-      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-      onError={(e) => (e.currentTarget.style.display = 'none')}
-    />
-  </div>
-) : (
-  <div className="relative h-40 w-full flex flex-col items-center justify-center rounded-xl border border-purple-400 bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 text-white shadow-lg">
-    <span className="text-4xl mb-1">🎁</span>
-    <span className="text-lg font-bold tracking-wide">Gift Card</span>
-  </div>
-)}
-
+                {offer.iconText || offer.imageUrl ? (
+                  <div className="relative h-40 w-full">
+                    <img
+                      src={offer.iconText || offer.imageUrl}
+                      alt={offer.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
+                    Gift Card
+                  </div>
+                )}
 
                 {/* Offer Content */}
                 <CardHeader className="text-center p-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <div
-                      className={`flex items-center ${availability.color} mx-1`}
-                    >
-                      <Icon className="w-4 h-4 mr-1" />
-                      <span className="text-sm font-medium">
-                        {availability.status}
-                      </span>
-                    </div>
-                  </div>
-
                   <CardTitle className="text-white text-xl font-semibold">
                     {offer.title}
                   </CardTitle>
-                  <CardDescription className="text-gray-300 text-sm">
-                    {offer.description}
+                  <CardDescription className="text-green-400 text-lg font-bold">
+                    ${offer.points.toFixed(2)}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-4 w-full px-6 pb-6">
+                <CardContent className="space-y-3 px-6 pb-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300 font-medium">Reward</span>
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-500/20 text-green-400"
-                    >
-                      ${offer.points.toFixed(2)}
+                    <span className="text-gray-300">Status:</span>
+                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                      <Icon className="w-3 h-3 mr-1" />
+                      {availability.status}
                     </Badge>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-300 font-medium">Category</span>
+                    <span className="text-gray-300">Category</span>
                     <span className="text-white font-medium">
                       {offer.category || "General"}
                     </span>
                   </div>
 
+                  <div className="text-center text-sm text-gray-400">
+                    {offer.status === "active" 
+                      ? "Available now" 
+                      : "Offer completed"}
+                  </div>
+
                   <Button
                     onClick={() => handleOfferClick(offer)}
                     disabled={offer.status !== "active"}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     {offer.status !== "active" ? "Completed" : "Start Offer"}
