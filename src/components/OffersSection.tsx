@@ -95,77 +95,122 @@ const OffersSection = () => {
 
             // التحقق من وجود صورة
             const hasImage = offer.iconText || offer.imageUrl;
+            
+            // الحصول على اسم البطاقة مع قيمة افتراضية
+            const cardTitle = offer.cardTitle || offer.title || "Gift Card";
 
             return (
               <Card
                 key={offer.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden flex flex-col"
+                className="group bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-500 hover:scale-[1.05] shadow-lg rounded-2xl overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-purple-500/20"
               >
-                {/* Offer Image - بنفس تصميم الكود الأول */}
+                {/* Offer Image */}
                 {hasImage ? (
-                  <div className="relative h-40 w-full">
+                  <div className="relative h-40 w-full overflow-hidden">
                     <img
                       src={offer.iconText || offer.imageUrl}
                       alt={offer.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
-                        // عند فشل تحميل الصورة، نعرض البطاقة الافتراضية
                         const cardElement = e.currentTarget.parentElement;
                         if (cardElement) {
                           const defaultCard = document.createElement('div');
-                          defaultCard.className = 'h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold';
-                          defaultCard.textContent = 'Gift Card';
+                          defaultCard.className = 'h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white';
+                          defaultCard.innerHTML = `
+                            <div class="text-center animate-pulse">
+                              <div class="text-4xl mb-2 animate-bounce">🎁</div>
+                              <div class="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">${cardTitle}</div>
+                            </div>
+                          `;
                           cardElement.appendChild(defaultCard);
                         }
                       }}
                     />
+                    {/* Overlay effect */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
                   </div>
                 ) : (
-                  // البطاقة الافتراضية عندما لا توجد صورة
-                   <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
-    {offer.cardTitle || offer.title || "Gift Card" } {/* ✅ استخدام cardTitle بدلاً من "Gift Card" */}
-  </div>
+                  // البطاقة الافتراضية عندما لا توجد صورة - تصميم متحرك
+                  <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
+                    {/* Animated background */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                    
+                    {/* Floating particles */}
+                    <div className="absolute inset-0">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
+                          style={{
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                            animationDelay: `${i * 0.5}s`,
+                            animationDuration: `${3 + Math.random() * 2}s`
+                          }}
+                        ></div>
+                      ))}
+                    </div>
+
+                    {/* Content with animations */}
+                    <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110">
+                      <div className="text-4xl mb-2 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
+                      <div className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-pulse group-hover:animate-none">
+                        {cardTitle.split(' ').map((word, index) => (
+                          <span
+                            key={index}
+                            className="inline-block transition-transform duration-500 group-hover:scale-110 group-hover:translate-y-[-2px]"
+                            style={{ animationDelay: `${index * 0.1}s` }}
+                          >
+                            {word}{' '}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Shine effect on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  </div>
                 )}
 
                 {/* Offer Content */}
                 <CardHeader className="text-center p-4">
-                  <CardTitle className="text-white text-xl font-semibold">
+                  <CardTitle className="text-white text-xl font-semibold transform transition-transform duration-300 group-hover:scale-105">
                     {offer.title}
                   </CardTitle>
-                  <CardDescription className="text-green-400 text-lg font-bold">
+                  <CardDescription className="text-green-400 text-lg font-bold animate-pulse">
                     ${offer.points.toFixed(2)}
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-3 px-6 pb-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between transform transition-transform duration-300 group-hover:translate-x-1">
                     <span className="text-gray-300">Status:</span>
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 transition-all duration-300 group-hover:scale-110">
                       <Icon className="w-3 h-3 mr-1" />
                       {availability.status}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between transform transition-transform duration-300 group-hover:translate-x-1">
                     <span className="text-gray-300">Category</span>
                     <span className="text-white font-medium">
                       {offer.category || "General"}
                     </span>
                   </div>
 
-                  <div className="text-center text-sm text-gray-400">
+                  <div className="text-center text-sm text-gray-400 transform transition-all duration-300 group-hover:text-white">
                     {offer.status === "active" 
-                      ? "Available now" 
-                      : "Offer completed"}
+                      ? "✨ Available now ✨" 
+                      : "✅ Offer completed"}
                   </div>
 
                   <Button
                     onClick={() => handleOfferClick(offer)}
                     disabled={offer.status !== "active"}
-                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-purple-500/50"
                   >
-                    <ExternalLink className="w-4 h-4 mr-2" />
+                    <ExternalLink className="w-4 h-4 mr-2 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
                     {offer.status !== "active" ? "Completed" : "Start Offer"}
                   </Button>
                 </CardContent>
@@ -186,6 +231,24 @@ const OffersSection = () => {
           participationType={selectedOffer.participationType}
         />
       )}
+
+      {/* Custom animations */}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(180deg); }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        .animate-shimmer {
+          animation: shimmer 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
