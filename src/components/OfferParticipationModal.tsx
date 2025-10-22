@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Users, Gift, Sparkles, Target, X } from "lucide-react";
+import { Mail, ExternalLink, Clock, IdCard, Users, Gift, Sparkles, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { firestore } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from "firebase/firestore";
@@ -161,7 +161,6 @@ const OfferParticipationModal = ({
 
   // Handle Cancel button
   const handleCancel = () => {
-    console.log("Cancel button clicked"); // للتصحيح
     setInputValue("");
     onClose();
   };
@@ -171,16 +170,12 @@ const OfferParticipationModal = ({
                        (offerImage.startsWith('http') || offerImage.startsWith('https'));
 
   return (
-    <Dialog open={isOpen}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0 relative">
-        {/* Close Button */}
-        <button
-          onClick={handleCancel}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300 group"
-        >
-          <X className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-        </button>
-        
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        handleCancel();
+      }
+    }}>
+      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
         
@@ -202,7 +197,7 @@ const OfferParticipationModal = ({
                       defaultDesign.innerHTML = `
                         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
                         <div class="text-center text-white relative z-10">
-                          <Target className="w-12 h-12 mx-auto mb-2 text-white animate-bounce" />
+                          <Target class="w-12 h-12 mx-auto mb-2 text-white animate-bounce" />
                           <div class="text-xl font-bold">${offerTitle}</div>
                         </div>
                       `;
@@ -375,6 +370,7 @@ const OfferParticipationModal = ({
 
               <Button
                 type="button"
+                variant="outline"
                 onClick={handleCancel}
                 className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
               >
