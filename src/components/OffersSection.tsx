@@ -27,10 +27,51 @@ const OffersSection = () => {
 
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [offersWithCardTitle, setOffersWithCardTitle] = useState<Offer[]>([]);
 
   useEffect(() => {
     dispatch(fetchOffers());
   }, [dispatch]);
+
+  // تحميل بيانات cardTitle مباشرة من Firebase إذا لم تكن موجودة في Redux
+  useEffect(() => {
+    const loadCardTitles = async () => {
+      if (offers.length > 0) {
+        try {
+          const { doc, getDoc } = await import("firebase/firestore");
+          const { firestore } = await import("@/lib/firebase");
+          
+          const offersWithTitles = await Promise.all(
+            offers.map(async (offer) => {
+              try {
+                const offerRef = doc(firestore, "offers", offer.id);
+                const offerSnap = await getDoc(offerRef);
+                
+                if (offerSnap.exists()) {
+                  const firebaseData = offerSnap.data();
+                  return {
+                    ...offer,
+                    cardTitle: firebaseData.cardTitle || firebaseData.cardtitle || offer.title || "Special Offer"
+                  };
+                }
+                return offer;
+              } catch (error) {
+                console.error(`Error loading cardTitle for offer ${offer.id}:`, error);
+                return offer;
+              }
+            })
+          );
+          
+          setOffersWithCardTitle(offersWithTitles);
+        } catch (error) {
+          console.error("Error loading card titles:", error);
+          setOffersWithCardTitle(offers);
+        }
+      }
+    };
+
+    loadCardTitles();
+  }, [offers]);
 
   const getAvailabilityStatus = (offer: Offer) => {
     if (offer.status === "inactive") {
@@ -60,26 +101,27 @@ const OffersSection = () => {
     setShowModal(true);
   };
 
-  // دالة للحصول على cardTitle مع التحقق الشامل
+  // دالة محسنة للحصول على cardTitle
   const getCardTitle = (offer: Offer) => {
-    console.log('Offer data:', offer); // للتصحيح
+    // تحقق مباشر من الحقل
+    const cardTitle = offer.cardTitle || 
+                     (offer as any).cardtitle || 
+                     (offer as any).card_title ||
+                     (offer as any).cardName;
     
-    // تحقق من جميع الأسماء المحتملة لـ cardTitle
-    if (offer.cardTitle && offer.cardTitle.trim() !== '') {
-      return offer.cardTitle;
-    }
-    if (offer.cardtitle && offer.cardtitle.trim() !== '') {
-      return offer.cardtitle;
-    }
-    if (offer.card_title && offer.card_title.trim() !== '') {
-      return offer.card_title;
-    }
-    if (offer.cardName && offer.cardName.trim() !== '') {
-      return offer.cardName;
+    console.log('🔍 Checking cardTitle for offer:', {
+      id: offer.id,
+      title: offer.title,
+      cardTitle: cardTitle,
+      allData: offer
+    });
+
+    if (cardTitle && cardTitle.trim() !== '') {
+      return cardTitle;
     }
     
-    // إذا لم يوجد cardTitle، استخدم العنوان العادي
-    return offer.title || "Special Offer";
+    // إذا لم يوجد، استخدم العنوان مع إضافة "GIFT CARD"
+    return offer.title ? `${offer.title} GIFT CARD` : "GIFT CARD";
   };
 
   if (loading) {
@@ -89,6 +131,9 @@ const OffersSection = () => {
       </div>
     );
   }
+
+  // استخدام البيانات المحسنة إذا كانت متاحة
+  const displayOffers = offersWithCardTitle.length > 0 ? offersWithCardTitle : offers;
 
   return (
     <div className="container mx-auto px-4 py-16 bg-gradient-to-b from-transparent to-black/20">
@@ -105,13 +150,13 @@ const OffersSection = () => {
       </div>
 
       {/* Offers Grid */}
-      {offers.length === 0 ? (
+      {displayOffers.length === 0 ? (
         <p className="text-center text-gray-400">
           No offers available at the moment.
         </p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {offers.map((offer) => {
+          {displayOffers.map((offer) => {
             const availability = getAvailabilityStatus(offer);
             const Icon = availability.icon;
 
@@ -140,16 +185,15 @@ const OffersSection = () => {
                           const defaultCard = document.createElement('div');
                           defaultCard.className = 'h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white';
                           defaultCard.innerHTML = `
-                            <div class="text-center animate-pulse">
+                            <div class="text-center">
                               <div class="text-4xl mb-2 animate-bounce">🎁</div>
-                              <div class="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent px-2 leading-tight break-words whitespace-normal">${cardTitle}</div>
+                              <div class="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent px-2 leading-tight break-words whitespace-normal">${cardTitle}</div>
                             </div>
                           `;
                           cardElement.appendChild(defaultCard);
                         }
                       }}
                     />
-                    {/* Overlay effect */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
                   </div>
                 ) : (
@@ -177,7 +221,7 @@ const OffersSection = () => {
                     {/* Content with animations */}
                     <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110 w-full px-4">
                       <div className="text-4xl mb-3 animate-bounce group-hover:animate-spin duration-1000">🎁</div>
-                      <div className="text-2xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent animate-pulse group-hover:animate-none leading-tight break-words whitespace-normal">
+                      <div className="text-xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent leading-tight break-words whitespace-normal px-2">
                         {cardTitle}
                       </div>
                     </div>
@@ -192,28 +236,28 @@ const OffersSection = () => {
                   <CardTitle className="text-white text-xl font-semibold transform transition-transform duration-300 group-hover:scale-105">
                     {offer.title}
                   </CardTitle>
-                  <CardDescription className="text-green-400 text-lg font-bold animate-pulse">
+                  <CardDescription className="text-green-400 text-lg font-bold">
                     ${offer.points.toFixed(2)}
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-3 px-6 pb-6">
-                  <div className="flex items-center justify-between transform transition-transform duration-300 group-hover:translate-x-1">
+                  <div className="flex items-center justify-between">
                     <span className="text-gray-300">Status:</span>
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 transition-all duration-300 group-hover:scale-110">
+                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
                       <Icon className="w-3 h-3 mr-1" />
                       {availability.status}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between transform transition-transform duration-300 group-hover:translate-x-1">
+                  <div className="flex items-center justify-between">
                     <span className="text-gray-300">Category</span>
                     <span className="text-white font-medium">
                       {offer.category || "General"}
                     </span>
                   </div>
 
-                  <div className="text-center text-sm text-gray-400 transform transition-all duration-300 group-hover:text-white">
+                  <div className="text-center text-sm text-gray-400">
                     {offer.status === "active" 
                       ? "✨ Available now ✨" 
                       : "✅ Offer completed"}
@@ -222,9 +266,9 @@ const OffersSection = () => {
                   <Button
                     onClick={() => handleOfferClick(offer)}
                     disabled={offer.status !== "active"}
-                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-purple-500/50"
+                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <ExternalLink className="w-4 h-4 mr-2 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                    <ExternalLink className="w-4 h-4 mr-2" />
                     {offer.status !== "active" ? "Completed" : "Start Offer"}
                   </Button>
                 </CardContent>
