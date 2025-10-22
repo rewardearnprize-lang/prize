@@ -100,7 +100,7 @@ const OffersSection = () => {
               >
                 {/* Offer Image (Card Style) */}
                 {offer.iconText ? (
-                  <div className="relative h-40 w-full">
+  <div className="relative h-40 w-full overflow-hidden rounded-xl border border-purple-400 shadow-md">
                     <img
                       src={offer.iconText}
                       alt={offer.title}
