@@ -131,7 +131,7 @@ const OffersSection = () => {
                 {/* Offer Content */}
                 <CardHeader className="text-center p-4">
                   <CardTitle className="text-white text-xl font-semibold">
-                    {offer.cardTitle}
+                    {offer.title}
                   </CardTitle>
                   <CardDescription className="text-green-400 text-lg font-bold">
                     ${offer.points.toFixed(2)}
