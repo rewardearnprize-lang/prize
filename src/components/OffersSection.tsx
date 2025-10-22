@@ -93,22 +93,36 @@ const OffersSection = () => {
             const availability = getAvailabilityStatus(offer);
             const Icon = availability.icon;
 
+            // التحقق من وجود صورة
+            const hasImage = offer.iconText || offer.imageUrl;
+
             return (
               <Card
                 key={offer.id}
                 className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-[1.03] shadow-lg rounded-2xl overflow-hidden flex flex-col"
               >
-                {/* Offer Image (Card Style) - بنفس تصميم الكود الأول */}
-                {offer.iconText ? (
+                {/* Offer Image - بنفس تصميم الكود الأول */}
+                {hasImage ? (
                   <div className="relative h-40 w-full">
                     <img
-                      src={offer.iconText}
+                      src={offer.iconText || offer.imageUrl}
                       alt={offer.title}
                       className="w-full h-full object-cover"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        // عند فشل تحميل الصورة، نعرض البطاقة الافتراضية
+                        const cardElement = e.currentTarget.parentElement;
+                        if (cardElement) {
+                          const defaultCard = document.createElement('div');
+                          defaultCard.className = 'h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold';
+                          defaultCard.textContent = 'Gift Card';
+                          cardElement.appendChild(defaultCard);
+                        }
+                      }}
                     />
                   </div>
                 ) : (
+                  // البطاقة الافتراضية عندما لا توجد صورة
                   <div className="h-40 w-full flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white text-3xl font-bold">
                     Gift Card
                   </div>
