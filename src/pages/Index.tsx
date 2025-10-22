@@ -244,7 +244,7 @@ const Index = () => {
     console.log('🔍 Checking cardTitle for draw:', {
       id: draw.id,
       name: draw.name,
-      cardTitle: cardTitle,
+      cardTitle: draw.cardTitle,
       allData: draw
     });
 
