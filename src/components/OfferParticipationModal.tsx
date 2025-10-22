@@ -165,6 +165,10 @@ const OfferParticipationModal = ({
     onClose();
   };
 
+  // Check if offerImage exists and is a valid URL
+  const hasValidImage = offerImage && offerImage.trim() !== '' && 
+                       (offerImage.startsWith('http') || offerImage.startsWith('https'));
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
@@ -178,25 +182,27 @@ const OfferParticipationModal = ({
         <div className="relative z-10">
           {/* Image Section - Full Width like Main Page */}
           <div className="w-full h-40 relative overflow-hidden group">
-            {offerImage ? (
+            {hasValidImage ? (
               <>
                 <img 
                   src={offerImage} 
                   alt={offerTitle}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   onError={(e) => {
+                    // If image fails to load, show default design
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
-                      parent.innerHTML = `
-                        <div class="w-full h-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 flex items-center justify-center relative overflow-hidden">
-                          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
-                          <div class="text-center text-white relative z-10">
-                            <Target className="w-12 h-12 mx-auto mb-2 animate-bounce" />
-                            <div class="text-xl font-bold">${offerTitle}</div>
-                          </div>
+                      const defaultDesign = document.createElement('div');
+                      defaultDesign.className = 'w-full h-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 flex items-center justify-center relative overflow-hidden';
+                      defaultDesign.innerHTML = `
+                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                        <div class="text-center text-white relative z-10">
+                          <Target className="w-12 h-12 mx-auto mb-2 text-white animate-bounce" />
+                          <div class="text-xl font-bold">${offerTitle}</div>
                         </div>
                       `;
+                      parent.appendChild(defaultDesign);
                     }
                   }}
                 />
