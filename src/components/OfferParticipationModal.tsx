@@ -144,8 +144,7 @@ const OfferParticipationModal = ({
         description: "Check your entry on the verification page to confirm participation.",
         variant: "default",
       });
-      onClose();
-      setInputValue("");
+      handleClose();
     } catch (error) {
       console.error(error);
       toast({ 
@@ -159,10 +158,16 @@ const OfferParticipationModal = ({
 
   const remaining = maxParticipants ? maxParticipants - joinedCount : 0;
 
-  // Handle Cancel button - تم التصحيح هنا
-  const handleCancel = () => {
+  // ✅ التصحيح: دالة مركزية للإغلاق
+  const handleClose = () => {
     setInputValue("");
+    setLoading(false);
     onClose();
+  };
+
+  // ✅ التصحيح: دالة منفصلة لزر Cancel
+  const handleCancel = () => {
+    handleClose();
   };
 
   // Check if offerImage exists and is a valid URL
@@ -172,7 +177,7 @@ const OfferParticipationModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
-        handleCancel();
+        handleClose(); // ✅ استخدام handleClose بدلاً من handleCancel
       }
     }}>
       <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
@@ -371,7 +376,7 @@ const OfferParticipationModal = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleCancel} // ✅ تم التصحيح هنا - يستدعي handleCancel مباشرة
+                onClick={handleCancel} // ✅ التصحيح: استخدام handleCancel مباشرة
                 className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
