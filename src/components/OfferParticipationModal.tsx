@@ -177,10 +177,18 @@ const OfferParticipationModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
-        handleClose(); // ✅ استخدام handleClose بدلاً من handleCancel
+        handleClose();
       }
     }}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
+      {/* ✅ التصحيح: إضافة onPointerDownOutside و onEscapeKeyDown */}
+      <DialogContent 
+        className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0"
+        onPointerDownOutside={(e) => {
+          e.preventDefault();
+          handleClose();
+        }}
+        onEscapeKeyDown={handleClose}
+      >
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
         
@@ -309,6 +317,7 @@ const OfferParticipationModal = ({
                 <span className="text-red-400 ml-1">*</span>
               </label>
               <div className="relative group">
+                {/* ✅ التصحيح: التأكد من أن الـ Input يستقبل الأحداث */}
                 <Input
                   type={participationType === "id" ? "text" : "email"}
                   placeholder={
@@ -318,8 +327,15 @@ const OfferParticipationModal = ({
                   }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSubmit();
+                    }
+                  }}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
                   required
+                  autoFocus={true} // ✅ إضافة autoFocus
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
               </div>
@@ -376,7 +392,7 @@ const OfferParticipationModal = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleCancel} // ✅ التصحيح: استخدام handleCancel مباشرة
+                onClick={handleCancel}
                 className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
