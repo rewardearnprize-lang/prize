@@ -1,182 +1,199 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, AlertCircle, Star, Sparkles, Trophy, Gift } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Mail, ExternalLink, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { firestore } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-const OfferCompletion = () => {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSparkles, setShowSparkles] = useState(false);
-  const navigate = useNavigate();
+interface OfferParticipationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  offerId: string;
+  offerTitle: string;
+  offerLink: string;
+  participationType: "email" | "id";
+}
 
-  useEffect(() => {
-    // Trigger sparkle animation on page load
-    const timer = setTimeout(() => {
-      setShowSparkles(true);
-    }, 500);
+const OfferParticipationModal = ({
+  isOpen,
+  onClose,
+  offerId,
+  offerTitle,
+  offerLink,
+  participationType,
+}: OfferParticipationModalProps) => {
+  const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setMessage("Please enter a valid email address");
-      setMessageType("error");
-      return;
+  const normalizeUrl = (url: string) => {
+    if (!/^https?:\/\//i.test(url)) {
+      return "https://" + url;
     }
-
-    setIsLoading(true);
-    
-    // Simulate confirmation process
-    setTimeout(() => {
-      setMessage("Congratulations! Your entry has been confirmed. You're now in the draw!");
-      setMessageType("success");
-      setIsLoading(false);
-      
-      // Redirect to thank you page after 3 seconds
-      setTimeout(() => {
-        navigate("/thank-you");
-      }, 3000);
-    }, 1500);
+    return url;
   };
 
-  const sparkleElements = Array.from({ length: 6 }, (_, i) => (
-    <div
-      key={i}
-      className={`absolute animate-sparkle ${showSparkles ? 'opacity-100' : 'opacity-0'}`}
-      style={{
-        left: `${20 + i * 15}%`,
-        top: `${10 + (i % 2) * 20}%`,
-        animationDelay: `${i * 0.2}s`,
-        animationDuration: '2s'
-      }}
-    >
-      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-    </div>
-  ));
+  const handleSubmit = async () => {
+    if (!inputValue) {
+      return toast({
+        title: `Please enter your ${
+          participationType === "email" ? "Email" : "ID"
+        }`,
+        variant: "destructive",
+      });
+    }
+
+    if (!offerLink) {
+      return toast({
+        title: "This offer has no valid link",
+        variant: "destructive",
+      });
+    }
+
+    const finalLink = normalizeUrl(offerLink);
+    window.open(finalLink, "_blank");
+
+    setLoading(true);
+    try {
+      const participantRef = doc(
+        firestore,
+        "participants",
+        inputValue + "_" + offerId
+      );
+      await setDoc(participantRef, {
+        [participationType]: inputValue,
+        offerId,
+        offerTitle,
+        offerurl: finalLink,
+        status: "completed",
+        timestamp: serverTimestamp(),
+      });
+
+      toast({
+        title: "Participation submitted successfully 🎉",
+        variant: "default",
+      });
+      onClose();
+      setInputValue("");
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Something went wrong", variant: "destructive" });
+    }
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-main flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Sparkle Elements */}
-      {sparkleElements}
-      
-      <div className="w-full max-w-lg">
-        <Card className="bg-card-dark border-white/20 relative">
-          <CardHeader className="text-center space-y-6 pb-8">
-            {/* Trophy Icon with Animation */}
-            <div className="mx-auto w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center animate-bounce-gentle">
-              <Trophy className="w-10 h-10 text-yellow-400" />
+    <Dialog
+      open={isOpen}
+      onOpenChange={() => {
+        onClose();
+        setInputValue("");
+      }}
+    >
+      <DialogContent className="max-w-lg bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20">
+        <DialogHeader>
+          <DialogTitle className="text-center">
+            <div className="space-y-4">
+              <div className="text-4xl">🎯</div>
+              <h2 className="text-2xl font-bold text-white">Join Offer</h2>
+              <p className="text-lg text-gray-300">{offerTitle}</p>
+              <Badge className="bg-green-500/20 text-green-400 text-lg px-4 py-2">
+                Complete to unlock rewards
+              </Badge>
             </div>
-            
-            {/* Main Headline with Fade Animation */}
-            <div className="space-y-3 animate-fade-in">
-              <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-                ðŸŽ‰ Congratulations!
-              </h1>
-              <h2 className="text-xl md:text-2xl font-semibold text-white/90">
-                You have completed the offer
-              </h2>
-            </div>
-            
-            {/* Subtext with Scale Animation */}
-            <div className="animate-scale-in" style={{ animationDelay: '0.3s' }}>
-              <p className="text-lg text-green-300 font-medium flex items-center justify-center gap-2">
-                <Gift className="w-5 h-5" />
-                You are now eligible for the draw!
-              </p>
-              <p className="text-gray-300 text-sm mt-2">
-                Your entry has been recorded and you're in the running for amazing prizes
-              </p>
-            </div>
-          </CardHeader>
+          </DialogTitle>
+        </DialogHeader>
 
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-3">
-                <Label htmlFor="email" className="text-white font-medium flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  Email Address (Optional)
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-white/40 transition-all duration-200 focus:bg-white/15"
-                />
-                <p className="text-xs text-gray-400">
-                  Provide your email to receive updates about the draw results
-                </p>
-              </div>
+        <div className="space-y-6">
 
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 text-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Confirming Entry...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    Confirm My Entry
-                  </div>
-                )}
-              </Button>
-            </form>
 
-            {message && (
-              <Alert className={`animate-fade-in ${
-                messageType === "success" 
-                  ? "bg-green-500/20 border-green-500/30 text-green-300" 
-                  : "bg-red-500/20 border-red-500/30 text-red-300"
-              }`}>
-                <div className="flex items-start space-x-3">
-                  {messageType === "success" ? (
-                    <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                  )}
-                  <AlertDescription className="text-sm leading-relaxed">
-                    {message}
-                  </AlertDescription>
+          <div>
+            <label className="block text-white font-medium mb-2">
+              <Mail className="w-4 h-4 inline mr-2" />
+              {participationType === "email" ? "Email" : "ID"}
+            </label>
+            <Input
+              type={participationType === "email" ? "email" : "text"}
+              placeholder={
+                participationType === "email"
+                  ? "Enter your Email"
+                  : "Enter your ID"
+              }
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+              required
+            />
+          </div>
+
+          <Card className="bg-blue-500/20 border-blue-500/30">
+            <CardContent className="p-4">
+              <h4 className="text-white font-medium mb-3">
+                Participation Steps:
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    1
+                  </span>
+                  Enter your {participationType === "email" ? "Email" : "ID"}
                 </div>
-              </Alert>
-            )}
 
-            <div className="text-center space-y-3 pt-4 border-t border-white/10">
-              <p className="text-gray-400 text-sm">
-                Want to increase your chances?
-              </p>
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/")}
-                className="text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200"
-              >
-                Complete More Offers
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Floating Elements */}
-        <div className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-400/20 rounded-full animate-bounce-gentle" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-green-400/20 rounded-full animate-bounce-gentle" style={{ animationDelay: '1.5s' }}></div>
-      </div>
-    </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    2
+                  </span>
+                  Complete the required offer
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    3
+                  </span>
+                  Confirm your{" "}
+                  {participationType === "email" ? "Email" : "ID"} again
+                </div>
+                <div className="flex items-center text-gray-300">
+                  <span className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-3">
+                    4
+                  </span>
+                  Wait for participation confirmation
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex space-x-3">
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              {loading ? "Saving..." : "Participate Now"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="border-white/30 text-black hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default OfferCompletion;
+export default OfferParticipationModal;
