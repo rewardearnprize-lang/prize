@@ -182,12 +182,13 @@ const OfferParticipationModal = ({
     }}>
       {/* ✅ التصحيح: إضافة onPointerDownOutside و onEscapeKeyDown */}
       <DialogContent 
-        className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0"
+     /*   className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0"
         onPointerDownOutside={(e) => {
           e.preventDefault();
           handleClose();
         }}
         onEscapeKeyDown={handleClose}
+        */
       >
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
