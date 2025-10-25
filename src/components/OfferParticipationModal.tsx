@@ -1,413 +1,182 @@
-import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Mail, ExternalLink, Clock, IdCard, Users, Gift, Sparkles, Target } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { firestore } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from "firebase/firestore";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, AlertCircle, Star, Sparkles, Trophy, Gift } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-interface OfferParticipationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  offerId: string;
-  offerTitle: string;
-  offerLink: string;
-  participationType: "email" | "id";
-  prizeValue?: number | string;
-  maxParticipants?: number;
-  offerImage?: string;
-}
-
-const OfferParticipationModal = ({
-  isOpen,
-  onClose,
-  offerId,
-  offerTitle,
-  offerLink,
-  participationType,
-  prizeValue,
-  maxParticipants,
-  offerImage,
-}: OfferParticipationModalProps) => {
-  const [inputValue, setInputValue] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [joinedCount, setJoinedCount] = useState(0);
-  const { toast } = useToast();
-
-  const fetchJoinedCount = async () => {
-    if (!offerId) return;
-    try {
-      const q = query(
-        collection(firestore, "participants"),
-        where("offerId", "==", offerId),
-        where("verified", "==", true)
-      );
-      const snap = await getDocs(q);
-      setJoinedCount(snap.size);
-    } catch (err) {
-      console.error("Error fetching joined count:", err);
-    }
-  };
+const OfferCompletion = () => {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSparkles, setShowSparkles] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (isOpen && offerId) {
-      fetchJoinedCount();
-      setInputValue("");
-    }
-  }, [isOpen, offerId]);
+    // Trigger sparkle animation on page load
+    const timer = setTimeout(() => {
+      setShowSparkles(true);
+    }, 500);
 
-  const normalizeUrl = (url: string) => {
-    if (!/^https?:\/\//i.test(url)) {
-      return "https://" + url;
-    }
-    return url;
-  };
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!inputValue.trim()) {
-      toast({
-        title: "Error",
-        description: `Please enter your ${participationType === "email" ? "Email" : "ID"}.`,
-        variant: "destructive",
-      });
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage("Please enter a valid email address");
+      setMessageType("error");
       return;
     }
 
-    if (!offerLink) {
-      toast({
-        title: "Error",
-        description: "This offer has no valid link",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (maxParticipants && joinedCount >= maxParticipants) {
-      toast({
-        title: "This offer is full",
-        description: "All participation slots have been filled.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const uniqueKey = "key_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-
-      const participantRef = doc(firestore, "participants", uniqueKey);
-      await setDoc(participantRef, {
-        [participationType]: inputValue.trim(),
-        offerId,
-        offerTitle,
-        offerurl: normalizeUrl(offerLink),
-        status: "pending",
-        timestamp: serverTimestamp(),
-        verified: false,
-        key: uniqueKey,
-        joinDate: new Date().toISOString(),
-        prizeValue: prizeValue || null,
-      });
-
-      console.log("✅ Participant added with key:", uniqueKey);
-
-      const finalLink = normalizeUrl(offerLink);
-      let offerUrlWithParams = `${finalLink}${
-        finalLink.includes("?") ? "&" : "?"
-      }aff_sub4=${encodeURIComponent(uniqueKey)}&aff_sub5=${encodeURIComponent(inputValue)}`;
-
-      const ua = navigator.userAgent || (navigator as any).vendor || (window as any).opera;
-      const isMobile = /iphone|ipod|ipad|android|blackberry|mobile|windows phone|opera mini/i.test(ua);
-
-      if (isMobile) {
-        offerUrlWithParams = offerUrlWithParams.replace("/cl/i/", "/cl/v/");
-      }
-
-      const newTab = window.open("about:blank", "_blank");
-
-      if (newTab) {
-        setTimeout(() => {
-          try {
-            newTab.location.href = offerUrlWithParams;
-          } catch (err) {
-            console.warn("Could not set newTab.location.href:", err);
-            window.open(offerUrlWithParams, "_blank");
-          }
-        }, 100);
-      } else {
-        window.open(offerUrlWithParams, "_blank");
-      }
-
-      toast({
-        title: "Participation Registered 🎉",
-        description: "Check your entry on the verification page to confirm participation.",
-      });
-
-      setInputValue("");
-      onClose();
-
-    } catch (error) {
-      console.error("Error adding participation:", error);
-      toast({
-        title: "Error",
-        description: "There was an error registering your participation. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setIsLoading(true);
+    
+    // Simulate confirmation process
+    setTimeout(() => {
+      setMessage("Congratulations! Your entry has been confirmed. You're now in the draw!");
+      setMessageType("success");
+      setIsLoading(false);
+      
+      // Redirect to thank you page after 3 seconds
+      setTimeout(() => {
+        navigate("/thank-you");
+      }, 3000);
+    }, 1500);
   };
 
-  const remaining = maxParticipants ? maxParticipants - joinedCount : 0;
-  const hasValidImage = offerImage && offerImage.trim() !== '' && 
-                       (offerImage.startsWith('http') || offerImage.startsWith('https'));
+  const sparkleElements = Array.from({ length: 6 }, (_, i) => (
+    <div
+      key={i}
+      className={`absolute animate-sparkle ${showSparkles ? 'opacity-100' : 'opacity-0'}`}
+      style={{
+        left: `${20 + i * 15}%`,
+        top: `${10 + (i % 2) * 20}%`,
+        animationDelay: `${i * 0.2}s`,
+        animationDuration: '2s'
+      }}
+    >
+      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+    </div>
+  ));
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) onClose();
-    }}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
-        
-        <div className="relative z-10">
-          <div className="w-full h-40 relative overflow-hidden group">
-            {hasValidImage ? (
-              <>
-                <img 
-                  src={offerImage} 
-                  alt={offerTitle}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent) {
-                      const defaultDesign = document.createElement('div');
-                      defaultDesign.className = 'w-full h-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 flex items-center justify-center relative overflow-hidden';
-                      defaultDesign.innerHTML = `
-                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
-                        <div class="text-center text-white relative z-10">
-                          <Target class="w-12 h-12 mx-auto mb-2 text-white animate-bounce" />
-                          <div class="text-xl font-bold">${offerTitle}</div>
-                        </div>
-                      `;
-                      parent.appendChild(defaultDesign);
-                    }
-                  }}
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500"></div>
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
-                
-                <div className="absolute inset-0">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
-                      style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                        animationDelay: `${i * 0.5}s`,
-                        animationDuration: `${3 + Math.random() * 2}s`
-                      }}
-                    ></div>
-                  ))}
-                </div>
-
-                <div className="text-center relative z-10 transform transition-all duration-500 group-hover:scale-110">
-                  <Target className="w-12 h-12 text-white mx-auto mb-2 animate-bounce" />
-                  <div className="text-xl font-bold text-white">
-                    {offerTitle}
-                  </div>
-                </div>
-
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-              </div>
-            )}
-          </div>
-
-          <DialogHeader className="px-6 pt-4 pb-2">
-            <DialogTitle className="text-center">
-              <div className="space-y-3">
-                <h2 className="text-xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Join Offer
-                </h2>
-                
-                {prizeValue && (
-                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-3 py-1.5 rounded-full shadow-lg animate-pulse">
-                    <Gift className="w-3 h-3 mr-1" />
-                    Reward: {typeof prizeValue === 'number' ? `$${prizeValue}` : prizeValue}
-                  </Badge>
-                )}
-
-                {maxParticipants && (
-                  <div className="flex items-center justify-center space-x-4 text-sm">
-                    <div className="flex items-center text-blue-300">
-                      <Users className="w-4 h-4 mr-1" />
-                      <span>{joinedCount} joined</span>
-                    </div>
-                    <div className="flex items-center text-green-300">
-                      <Clock className="w-4 h-4 mr-1" />
-                      <span>{remaining} spots left</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-        </div>
-
-        <div className="space-y-5 relative z-10 px-6 pb-6">
-          <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
-            {maxParticipants && (
-              <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden">
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-300">Progress:</span>
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
-                      {remaining} remaining
-                    </Badge>
-                  </div>
-
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${((maxParticipants - remaining) / maxParticipants) * 100}%`,
-                      }}
-                    ></div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="space-y-2">
-              <label className="block text-white font-medium text-sm flex items-center">
-                {participationType === "id" ? (
-                  <IdCard className="w-4 h-4 mr-2" />
-                ) : (
-                  <Mail className="w-4 h-4 mr-2" />
-                )}
-                {participationType === "id" ? "Enter Your ID" : "Enter Your Email"}
-                <span className="text-red-400 ml-1">*</span>
-              </label>
-              <div className="relative group">
-                <Input
-                  type={participationType === "id" ? "text" : "email"}
-                  placeholder={
-                    participationType === "id"
-                      ? "Your unique ID..."
-                      : "your.email@example.com"
-                  }
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30"
-                  required
-                />
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
-              </div>
+    <div className="min-h-screen bg-gradient-main flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Sparkle Elements */}
+      {sparkleElements}
+      
+      <div className="w-full max-w-lg">
+        <Card className="bg-card-dark border-white/20 relative">
+          <CardHeader className="text-center space-y-6 pb-8">
+            {/* Trophy Icon with Animation */}
+            <div className="mx-auto w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center animate-bounce-gentle">
+              <Trophy className="w-10 h-10 text-yellow-400" />
             </div>
+            
+            {/* Main Headline with Fade Animation */}
+            <div className="space-y-3 animate-fade-in">
+              <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight">
+                ðŸŽ‰ Congratulations!
+              </h1>
+              <h2 className="text-xl md:text-2xl font-semibold text-white/90">
+                You have completed the offer
+              </h2>
+            </div>
+            
+            {/* Subtext with Scale Animation */}
+            <div className="animate-scale-in" style={{ animationDelay: '0.3s' }}>
+              <p className="text-lg text-green-300 font-medium flex items-center justify-center gap-2">
+                <Gift className="w-5 h-5" />
+                You are now eligible for the draw!
+              </p>
+              <p className="text-gray-300 text-sm mt-2">
+                Your entry has been recorded and you're in the running for amazing prizes
+              </p>
+            </div>
+          </CardHeader>
 
-            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300">
-              <CardContent className="p-4">
-                <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
-                  <Sparkles className="w-4 h-4 text-yellow-400 mr-2 animate-pulse" />
-                  Quick Steps to Complete
-                </h4>
-                <div className="space-y-3">
-                  {[
-                    { step: 1, text: `Enter your ${participationType === "id" ? "ID" : "email"}` },
-                    { step: 2, text: "Complete the required offer" },
-                    { step: 3, text: "Get your reward instantly" }
-                  ].map((item, index) => (
-                    <div 
-                      key={item.step}
-                      className="flex items-center text-gray-200 group-hover:text-white transition-colors duration-300"
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 shadow-lg animate-bounce"
-                           style={{ animationDelay: `${index * 0.2}s` }}>
-                        {item.step}
-                      </div>
-                      <span className="text-sm">{item.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-white font-medium flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Email Address (Optional)
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-white/40 transition-all duration-200 focus:bg-white/15"
+                />
+                <p className="text-xs text-gray-400">
+                  Provide your email to receive updates about the draw results
+                </p>
+              </div>
 
-            <div className="flex space-x-3 pt-2">
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 text-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
+                disabled={isLoading}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
-                {isSubmitting ? (
-                  <div className="flex items-center relative z-10">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Processing...
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Confirming Entry...
                   </div>
                 ) : (
-                  <div className="flex items-center relative z-10">
-                    <ExternalLink className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
-                    Participate Now
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Confirm My Entry
                   </div>
                 )}
               </Button>
+            </form>
 
+            {message && (
+              <Alert className={`animate-fade-in ${
+                messageType === "success" 
+                  ? "bg-green-500/20 border-green-500/30 text-green-300" 
+                  : "bg-red-500/20 border-red-500/30 text-red-300"
+              }`}>
+                <div className="flex items-start space-x-3">
+                  {messageType === "success" ? (
+                    <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  )}
+                  <AlertDescription className="text-sm leading-relaxed">
+                    {message}
+                  </AlertDescription>
+                </div>
+              </Alert>
+            )}
+
+            <div className="text-center space-y-3 pt-4 border-t border-white/10">
+              <p className="text-gray-400 text-sm">
+                Want to increase your chances?
+              </p>
               <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
+                variant="ghost"
+                onClick={() => navigate("/")}
+                className="text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                <span className="relative z-10">Cancel</span>
+                Complete More Offers
               </Button>
             </div>
-          </form>
-
-          <div className="text-center">
-            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1 px-3 animate-pulse">
-              🔒 Secure & Encrypted
-            </Badge>
-          </div>
-        </div>
-
-        <style jsx>{`
-          @keyframes shimmer {
-            0% { transform: translateX(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) rotate(45deg); }
-          }
-          @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(180deg); }
-          }
-          .animate-shimmer {
-            animation: shimmer 3s ease-in-out infinite;
-          }
-          .animate-float {
-            animation: float 3s ease-in-out infinite;
-          }
-        `}</style>
-      </DialogContent>
-    </Dialog>
+          </CardContent>
+        </Card>
+        
+        {/* Floating Elements */}
+        <div className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-400/20 rounded-full animate-bounce-gentle" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-green-400/20 rounded-full animate-bounce-gentle" style={{ animationDelay: '1.5s' }}></div>
+      </div>
+    </div>
   );
 };
 
-export default OfferParticipationModal;
+export default OfferCompletion;
