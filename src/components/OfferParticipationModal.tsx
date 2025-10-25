@@ -74,26 +74,29 @@ const OfferParticipationModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!inputValue) {
-      return toast({
+    if (!inputValue.trim()) {
+      toast({
         title: `Please enter your ${participationType === "email" ? "Email" : "ID"}`,
         variant: "destructive",
       });
+      return;
     }
 
     if (!offerLink) {
-      return toast({
+      toast({
         title: "This offer has no valid link",
         variant: "destructive",
       });
+      return;
     }
 
     if (maxParticipants && joinedCount >= maxParticipants) {
-      return toast({
+      toast({
         title: "This offer is full",
         description: "All participation slots have been filled.",
         variant: "destructive",
       });
+      return;
     }
 
     const finalLink = normalizeUrl(offerLink);
@@ -104,7 +107,7 @@ const OfferParticipationModal = ({
 
       const participantRef = doc(firestore, "participants", uniqueKey);
       await setDoc(participantRef, {
-        [participationType]: inputValue,
+        [participationType]: inputValue.trim(),
         offerId,
         offerTitle,
         offerurl: finalLink,
@@ -146,7 +149,10 @@ const OfferParticipationModal = ({
         description: "Check your entry on the verification page to confirm participation.",
         variant: "default",
       });
-      handleClose();
+      
+      // Reset and close
+      setInputValue("");
+      onClose();
     } catch (error) {
       console.error(error);
       toast({ 
@@ -154,18 +160,18 @@ const OfferParticipationModal = ({
         description: "Please try again later.",
         variant: "destructive" 
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const remaining = maxParticipants ? maxParticipants - joinedCount : 0;
-
-  // ✅ التصحيح: دالة مركزية للإغلاق
   const handleClose = () => {
     setInputValue("");
     setLoading(false);
     onClose();
   };
+
+  const remaining = maxParticipants ? maxParticipants - joinedCount : 0;
 
   // Check if offerImage exists and is a valid URL
   const hasValidImage = offerImage && offerImage.trim() !== '' && 
@@ -184,6 +190,12 @@ const OfferParticipationModal = ({
           handleClose();
         }}
         onEscapeKeyDown={handleClose}
+        // ✅ منع الإغلاق التلقائي أثناء التحميل
+        onInteractOutside={(e) => {
+          if (loading) {
+            e.preventDefault();
+          }
+        }}
       >
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
@@ -279,8 +291,8 @@ const OfferParticipationModal = ({
         </div>
 
         <div className="space-y-5 relative z-10 px-6 pb-6">
-          {/* ✅ التصحيح: إضافة form وتعديل handleSubmit */}
-          <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
+          {/* ✅ التصحيح: استخدام form بشكل صحيح */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             {maxParticipants && (
               <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden">
                 <CardContent className="p-3 space-y-2">
@@ -303,9 +315,9 @@ const OfferParticipationModal = ({
               </Card>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
               <div className="space-y-2">
-                <label className="block text-white font-medium text-sm flex items-center">
+                <label htmlFor="participation-input" className="block text-white font-medium text-sm flex items-center">
                   {participationType === "id" ? (
                     <IdCard className="w-4 h-4 mr-2" />
                   ) : (
@@ -316,6 +328,7 @@ const OfferParticipationModal = ({
                 </label>
                 <div className="relative group">
                   <Input
+                    id="participation-input"
                     type={participationType === "id" ? "text" : "email"}
                     placeholder={
                       participationType === "id"
@@ -326,7 +339,8 @@ const OfferParticipationModal = ({
                     onChange={(e) => setInputValue(e.target.value)}
                     className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
                     required
-                    autoFocus={true}
+                    autoFocus
+                    disabled={loading}
                   />
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
                 </div>
@@ -384,6 +398,7 @@ const OfferParticipationModal = ({
                   type="button"
                   variant="outline"
                   onClick={handleClose}
+                  disabled={loading}
                   className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
