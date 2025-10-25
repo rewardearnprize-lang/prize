@@ -71,7 +71,9 @@ const OfferParticipationModal = ({
     return url;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!inputValue) {
       return toast({
         title: `Please enter your ${participationType === "email" ? "Email" : "ID"}`,
@@ -165,11 +167,6 @@ const OfferParticipationModal = ({
     onClose();
   };
 
-  // ✅ التصحيح: دالة منفصلة لزر Cancel
-  const handleCancel = () => {
-    handleClose();
-  };
-
   // Check if offerImage exists and is a valid URL
   const hasValidImage = offerImage && offerImage.trim() !== '' && 
                        (offerImage.startsWith('http') || offerImage.startsWith('https'));
@@ -180,7 +177,6 @@ const OfferParticipationModal = ({
         handleClose();
       }
     }}>
-      {/* ✅ التصحيح: إضافة onPointerDownOutside و onEscapeKeyDown */}
       <DialogContent 
         className="max-w-md bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border border-white/20 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-0"
         onPointerDownOutside={(e) => {
@@ -188,7 +184,6 @@ const OfferParticipationModal = ({
           handleClose();
         }}
         onEscapeKeyDown={handleClose}
-        
       >
         {/* Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
@@ -284,123 +279,119 @@ const OfferParticipationModal = ({
         </div>
 
         <div className="space-y-5 relative z-10 px-6 pb-6">
-          {maxParticipants && (
-            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden">
-              <CardContent className="p-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-300">Progress:</span>
-                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
-                    {remaining} remaining
-                  </Badge>
-                </div>
+          {/* ✅ التصحيح: إضافة form وتعديل handleSubmit */}
+          <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
+            {maxParticipants && (
+              <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden">
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-300">Progress:</span>
+                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
+                      {remaining} remaining
+                    </Badge>
+                  </div>
 
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${((maxParticipants - remaining) / maxParticipants) * 100}%`,
-                    }}
-                  ></div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${((maxParticipants - remaining) / maxParticipants) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-          <div className="space-y-4 animate-in slide-in-from-bottom-5 duration-500 delay-200">
-            <div className="space-y-2">
-              <label className="block text-white font-medium text-sm flex items-center">
-                {participationType === "id" ? (
-                  <IdCard className="w-4 h-4 mr-2" />
-                ) : (
-                  <Mail className="w-4 h-4 mr-2" />
-                )}
-                {participationType === "id" ? "Enter Your ID" : "Enter Your Email"}
-                <span className="text-red-400 ml-1">*</span>
-              </label>
-              <div className="relative group">
-                {/* ✅ التصحيح: التأكد من أن الـ Input يستقبل الأحداث */}
-                <Input
-                  type={participationType === "id" ? "text" : "email"}
-                  placeholder={
-                    participationType === "id"
-                      ? "Your unique ID..."
-                      : "your.email@example.com"
-                  }
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleSubmit();
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-white font-medium text-sm flex items-center">
+                  {participationType === "id" ? (
+                    <IdCard className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Mail className="w-4 h-4 mr-2" />
+                  )}
+                  {participationType === "id" ? "Enter Your ID" : "Enter Your Email"}
+                  <span className="text-red-400 ml-1">*</span>
+                </label>
+                <div className="relative group">
+                  <Input
+                    type={participationType === "id" ? "text" : "email"}
+                    placeholder={
+                      participationType === "id"
+                        ? "Your unique ID..."
+                        : "your.email@example.com"
                     }
-                  }}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  required
-                  autoFocus={true} // ✅ إضافة autoFocus
-                />
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-11 rounded-xl text-sm transition-all duration-300 focus:bg-white/15 focus:border-white/40 focus:scale-[1.02] group-hover:border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    required
+                    autoFocus={true}
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 blur-sm group-hover:from-blue-500/10 group-hover:to-pink-500/10 transition-all duration-500"></div>
+                </div>
+              </div>
+
+              <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300">
+                <CardContent className="p-4">
+                  <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
+                    <Sparkles className="w-4 h-4 text-yellow-400 mr-2 animate-pulse" />
+                    Quick Steps to Complete
+                  </h4>
+                  <div className="space-y-3">
+                    {[
+                      { step: 1, text: `Enter your ${participationType === "id" ? "ID" : "email"}` },
+                      { step: 2, text: "Complete the required offer" },
+                      { step: 3, text: "Get your reward instantly" }
+                    ].map((item, index) => (
+                      <div 
+                        key={item.step}
+                        className="flex items-center text-gray-200 group-hover:text-white transition-colors duration-300"
+                      >
+                        <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 shadow-lg animate-bounce"
+                             style={{ animationDelay: `${index * 0.2}s` }}>
+                          {item.step}
+                        </div>
+                        <span className="text-sm">{item.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex space-x-3 pt-2">
+                <Button
+                  type="submit"
+                  disabled={loading || (maxParticipants && remaining <= 0)}
+                  className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  
+                  {loading ? (
+                    <div className="flex items-center relative z-10">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    <div className="flex items-center relative z-10">
+                      <ExternalLink className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                      Participate Now
+                    </div>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  <span className="relative z-10">Cancel</span>
+                </Button>
               </div>
             </div>
-
-            <Card className="bg-white/10 border-white/20 backdrop-blur-sm rounded-xl overflow-hidden group hover:bg-white/15 transition-all duration-300">
-              <CardContent className="p-4">
-                <h4 className="text-white font-semibold text-sm mb-3 flex items-center">
-                  <Sparkles className="w-4 h-4 text-yellow-400 mr-2 animate-pulse" />
-                  Quick Steps to Complete
-                </h4>
-                <div className="space-y-3">
-                  {[
-                    { step: 1, text: `Enter your ${participationType === "id" ? "ID" : "email"}` },
-                    { step: 2, text: "Complete the required offer" },
-                    { step: 3, text: "Get your reward instantly" }
-                  ].map((item, index) => (
-                    <div 
-                      key={item.step}
-                      className="flex items-center text-gray-200 group-hover:text-white transition-colors duration-300"
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3 shadow-lg animate-bounce"
-                           style={{ animationDelay: `${index * 0.2}s` }}>
-                        {item.step}
-                      </div>
-                      <span className="text-sm">{item.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex space-x-3 pt-2">
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || (maxParticipants && remaining <= 0)}
-                className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
-                {loading ? (
-                  <div className="flex items-center relative z-10">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Processing...
-                  </div>
-                ) : (
-                  <div className="flex items-center relative z-10">
-                    <ExternalLink className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
-                    Participate Now
-                  </div>
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                className="border-white/30 text-white bg-transparent hover:bg-white/10 hover:text-white h-12 rounded-xl transition-all duration-500 transform hover:scale-[1.03] hover:shadow-xl min-w-[90px] relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                <span className="relative z-10">Cancel</span>
-              </Button>
-            </div>
-          </div>
+          </form>
 
           <div className="text-center">
             <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs py-1 px-3 animate-pulse">
