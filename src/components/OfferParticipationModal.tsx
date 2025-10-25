@@ -167,8 +167,9 @@ const OfferParticipationModal = ({
 
   // ✅ التصحيح: دالة منفصلة لزر Cancel
   const handleCancel = () => {
-    handleClose();
-  };
+  console.log("Cancel clicked");
+  handleClose();
+};
 
   // Check if offerImage exists and is a valid URL
   const hasValidImage = offerImage && offerImage.trim() !== '' && 
